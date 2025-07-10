@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+# Resonance News
 
-## Project info
+Resonance is a modern, responsive news platform designed to deliver high-quality journalism with a focus on in-depth storytelling and engaging content. Built with cutting-edge web technologies, Resonance offers a seamless reading experience across all devices.
 
-**URL**: https://lovable.dev/projects/de92e964-3ee6-48dc-b960-47efdedeca19
+## 🌟 Features
 
-## How can I edit this code?
+- **Modern, Responsive Design**: Beautifully crafted UI that works perfectly on desktop, tablet, and mobile devices
+- **Dark/Light Mode**: Built-in theme support for comfortable reading in any lighting condition
+- **Rich Media Content**: Support for articles with images, videos, and interactive elements
+- **Clean Typography**: Optimized for readability with carefully selected fonts and spacing
+- **Performance Optimized**: Fast loading times and smooth scrolling experience
+- **Accessibility First**: Built with web accessibility standards in mind
 
-There are several ways of editing your application.
+## 🚀 Technologies Used
 
-**Use Lovable**
+- **Frontend Framework**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with custom theming
+- **UI Components**: shadcn/ui (Radix UI + Tailwind CSS)
+- **Animation**: Framer Motion
+- **Routing**: React Router
+- **Icons**: Lucide Icons
+- **Build Tool**: Vite
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/de92e964-3ee6-48dc-b960-47efdedeca19) and start prompting.
+## 🛠️ Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 16+ and npm/yarn/pnpm
+- Git
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Thundastormgod/Resonance.git
+   cd Resonance
+   ```
 
-Follow these steps:
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn
+   # or
+   pnpm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Open [http://localhost:5173](http://localhost:5173) in your browser
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📦 Build for Production
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm run build
+# or
+yarn build
+# or
+pnpm build
 ```
 
-**Edit a file directly in GitHub**
+## 🎨 Customization
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Theming
 
-**Use GitHub Codespaces**
+The theme can be customized by modifying the `tailwind.config.ts` file. The application supports both light and dark modes, which can be toggled by the user.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Adding New Pages
 
-## What technologies are used for this project?
+1. Create a new file in the `src/pages` directory
+2. Export a default React component
+3. Add a new route in `src/App.tsx`
 
-This project is built with:
+## 🤝 Contributing
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## How can I deploy this project?
+## 📄 License
 
-Simply open [Lovable](https://lovable.dev/projects/de92e964-3ee6-48dc-b960-47efdedeca19) and click on Share -> Publish.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Can I connect a custom domain to my Lovable project?
+## 🌐 Live Demo
 
-Yes, you can!
+Check out the live demo at [resonance-news.vercel.app](https://resonance-news.vercel.app)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📬 Contact
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For any inquiries or feedback, please contact us at [contact@resonance.news](mailto:contact@resonance.news)
