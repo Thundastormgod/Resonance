@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 
 type AuthContextType = ReturnType<typeof useAuthStore>;
 
@@ -12,9 +13,16 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const auth = useAuthStore();
   
-  // Check auth state on mount
   useEffect(() => {
     auth.checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      auth.checkAuth();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

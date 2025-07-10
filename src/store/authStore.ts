@@ -105,10 +105,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
-// Initialize auth state when the app loads
-useAuthStore.getState().checkAuth();
 
-// Listen for auth state changes
-supabase.auth.onAuthStateChange((event, session) => {
-  useAuthStore.getState().checkAuth();
-});
+
+
