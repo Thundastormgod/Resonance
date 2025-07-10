@@ -1,26 +1,64 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from './components/ThemeProvider';
-import Index from './pages/Index';
-import Article from './pages/Article';
-import About from './pages/About';
-import NotFound from './pages/NotFound';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
+
+import Index from '@/pages/Index';
+import Article from '@/pages/Article';
+import About from '@/pages/About';
+import NotFound from '@/pages/NotFound';
+
+import AdminLayout from '@/components/admin/AdminLayout';
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminArticles from '@/pages/admin/Articles';
+import AdminArticleEdit from '@/pages/admin/ArticleEdit';
+import AdminLogin from '@/pages/admin/Login';
+import ProtectedRoute from '@/components/admin/ProtectedRoute';
 
 function App() {
   return (
-    <ThemeProvider>
-      <Router>
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/article/:slug" element={<Article />} />
-            <Route path="/about" element={<About />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </Router>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/article/:slug" element={<Article />} />
+              <Route path="/about" element={<About />} />
+
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route 
+                path="/admin/*"
+                element={
+                  <ProtectedRoute>
+                    <AdminRoutes />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Not Found Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+          </div>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
+
+const AdminRoutes = () => (
+  <Routes>
+    <Route element={<AdminLayout />}>
+      <Route index element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="dashboard" element={<AdminDashboard />} />
+      <Route path="articles" element={<AdminArticles />} />
+      <Route path="articles/new" element={<AdminArticleEdit />} />
+      <Route path="articles/:id/edit" element={<AdminArticleEdit />} />
+    </Route>
+  </Routes>
+);
 
 export default App;
