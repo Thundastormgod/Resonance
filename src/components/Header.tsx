@@ -168,7 +168,7 @@ const Header = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            "Where Stories Echo Through Time"
+            "Where Truth has a Voice"
           </motion.p>
           <motion.div 
             className="newspaper-kicker text-ink-600 dark:text-newsprint-400"
@@ -176,7 +176,7 @@ const Header = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            Independent • Authoritative • Global
+            Informative • Accurate • Global
           </motion.div>
         </div>
       </motion.div>

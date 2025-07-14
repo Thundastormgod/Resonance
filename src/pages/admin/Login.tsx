@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,9 +25,12 @@ export default function AdminLogin() {
 
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      toast.success('Login Successful!');
+      navigate('/admin/dashboard', { replace: true });
     } catch (error: any) {
-      setError(error.message || 'Failed to log in');
+      const errorMessage = error.message || 'Failed to log in';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

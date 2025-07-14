@@ -1,32 +1,44 @@
-import { createContext, useContext, ReactNode, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
 
-type AuthContextType = ReturnType<typeof useAuthStore>;
+// Define the shape of the context value
+interface AuthContextValue {
+  user: any; // Consider using a more specific type like User from @supabase/supabase-js
+  isAdmin: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 type AuthProviderProps = {
   children: ReactNode;
 };
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const auth = useAuthStore();
-  
-  useEffect(() => {
-    auth.checkAuth();
+  // Subscribe to the store and get the state
+  const authState = useAuthStore(state => state);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      auth.checkAuth();
+  useEffect(() => {
+    // Initial check
+    authState.checkAuth();
+
+    // Set up a listener for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      authState.checkAuth();
     });
 
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Run only once on mount
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={authState}>
       {children}
     </AuthContext.Provider>
   );

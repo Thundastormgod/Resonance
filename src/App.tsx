@@ -9,9 +9,10 @@ import About from '@/pages/About';
 import NotFound from '@/pages/NotFound';
 
 import AdminLayout from '@/components/admin/AdminLayout';
-import AdminDashboard from '@/pages/admin/Dashboard';
-import AdminArticles from '@/pages/admin/Articles';
-import AdminArticleEdit from '@/pages/admin/ArticleEdit';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminArticles from './pages/admin/Articles';
+import AdminArticleEdit from './pages/admin/ArticleEdit';
+import ContentSection from './pages/admin/ContentSection';
 import AdminLogin from '@/pages/admin/Login';
 import ProtectedRoute from '@/components/admin/ProtectedRoute';
 
@@ -29,14 +30,22 @@ function App() {
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              {/* Admin Routes: All routes under /admin are protected and use AdminLayout */}
               <Route 
-                path="/admin/*"
+                path="/admin"
                 element={
                   <ProtectedRoute>
-                    <AdminRoutes />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="articles" element={<AdminArticles />} />
+                <Route path="articles/new" element={<AdminArticleEdit />} />
+                <Route path="articles/:id/edit" element={<AdminArticleEdit />} />
+                <Route path="content/:sectionType" element={<ContentSection />} />
+              </Route>
 
               {/* Not Found Route */}
               <Route path="*" element={<NotFound />} />
@@ -48,17 +57,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-const AdminRoutes = () => (
-  <Routes>
-    <Route element={<AdminLayout />}>
-      <Route index element={<Navigate to="/admin/dashboard" replace />} />
-      <Route path="dashboard" element={<AdminDashboard />} />
-      <Route path="articles" element={<AdminArticles />} />
-      <Route path="articles/new" element={<AdminArticleEdit />} />
-      <Route path="articles/:id/edit" element={<AdminArticleEdit />} />
-    </Route>
-  </Routes>
-);
 
 export default App;

@@ -20,6 +20,8 @@ const articleSchema = z.object({
   author_id: z.string().uuid('Please select an author.'),
   category_id: z.string().uuid('Please select a category.'),
   published: z.boolean(),
+  is_lead_story: z.boolean(),
+  is_featured: z.boolean(),
 });
 
 type ArticleFormValues = z.infer<typeof articleSchema>;
@@ -78,6 +80,8 @@ export default function AdminArticleEdit() {
       author_id: '',
       category_id: '',
       published: false,
+      is_lead_story: false,
+      is_featured: false,
     },
   });
 
@@ -96,10 +100,15 @@ export default function AdminArticleEdit() {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      // Invalidate all queries related to articles to refresh the dashboard
+      queryClient.invalidateQueries({ queryKey: ['admin-lead-story'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-featured-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-latest-updates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trending-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] }); // For the main articles list
+      
       toast({ title: 'Success', description: `Article ${isEdit ? 'updated' : 'created'} successfully.` });
-      navigate('/admin/articles');
+      navigate('/admin/dashboard'); // Navigate back to the dashboard to see changes
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -222,8 +231,38 @@ export default function AdminArticleEdit() {
               </FormItem>
             )}
           />
+          <div className="grid md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="is_lead_story"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Lead Story</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="is_featured"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Featured Story</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => navigate('/admin/articles')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/admin/dashboard')}>
               Cancel
             </Button>
             <Button type="submit" disabled={mutation.isPending}>

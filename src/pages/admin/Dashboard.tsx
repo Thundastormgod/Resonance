@@ -1,217 +1,45 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Newspaper, Star, Zap, TrendingUp, Video as VideoIcon, Image as ImageIcon, ArrowRight } from 'lucide-react';
 
-// Define types for our data
-interface DashboardStats {
-  articlesCount: number | null;
-  authorsCount: number | null;
-  categoriesCount: number | null;
-}
-
-interface Article {
-  id: string;
-  title: string;
-  created_at: string;
-  slug: string;
-}
+const contentSections = [
+  { title: 'Lead Story', icon: <Newspaper />, link: '/admin/content/lead', description: 'Manage the main headline article.' },
+  { title: 'Featured Stories', icon: <Star />, link: '/admin/content/featured', description: 'Curate your top featured articles.' },
+  { title: 'Latest Updates', icon: <Zap />, link: '/admin/content/latest', description: 'View and manage the newest posts.' },
+  { title: 'Trending Now', icon: <TrendingUp />, link: '/admin/content/trending', description: 'Control the list of trending topics.' },
+  { title: 'Videos', icon: <VideoIcon />, link: '/admin/content/videos', description: 'Add or remove videos.' },
+  { title: 'Image Galleries', icon: <ImageIcon />, link: '/admin/content/images', description: 'Manage image galleries.' },
+];
 
 export default function AdminDashboard() {
-  // Fetch dashboard statistics with type safety
-  const { data: stats, isLoading } = useQuery<DashboardStats, Error>({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      const [
-        { count: articlesCount },
-        { count: authorsCount },
-        { count: categoriesCount },
-      ] = await Promise.all([
-        supabase.from('articles').select('*', { count: 'exact', head: true }),
-        supabase.from('authors').select('*', { count: 'exact', head: true }),
-        supabase.from('categories').select('*', { count: 'exact', head: true }),
-      ]);
-
-      return {
-        articlesCount,
-        authorsCount,
-        categoriesCount,
-      };
-    }
-  });
-
-  // Fetch recent articles with type safety
-  const { data: recentArticles } = useQuery<Article[], Error>({
-    queryKey: ['recent-articles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('articles')
-        .select('id, title, created_at, slug')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 p-4 sm:p-6 bg-gray-900 text-gray-200 rounded-lg">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here's what's happening with your site.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Content Management</h1>
+        <p className="text-gray-400 mt-1">Select a section to manage its content.</p>
       </div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard 
-          title="Total Articles" 
-          value={stats?.articlesCount ?? 0} 
-          description="All articles in the system"
-          icon={<DocumentTextIcon className="h-4 w-4 text-muted-foreground" />}
-        />
-        <StatCard 
-          title="Authors" 
-          value={stats?.authorsCount ?? 0} 
-          description="Active authors"
-          icon={<UserGroupIcon className="h-4 w-4 text-muted-foreground" />}
-        />
-        <StatCard 
-          title="Categories" 
-          value={stats?.categoriesCount ?? 0} 
-          description="Article categories"
-          icon={<TagIcon className="h-4 w-4 text-muted-foreground" />}
-        />
-      </div>
-
-      {/* Recent Articles */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Articles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentArticles && recentArticles.length > 0 ? (
-            <div className="space-y-4">
-              {recentArticles.map((article) => (
-                <div key={article.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{article.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(article.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/article/${article.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-indigo-600 hover:underline"
-                    >
-                      View
-                    </Link>
-                    <Link
-                      to={`/admin/articles/${article.id}`}
-                      className="text-sm text-indigo-600 hover:underline"
-                    >
-                      Edit
-                    </Link>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {contentSections.map((section) => (
+          <Link to={section.link} key={section.title} className="block hover:no-underline">
+            <Card className="bg-gray-800/50 border-gray-700/80 shadow-lg h-full flex flex-col hover:bg-gray-800/80 hover:border-indigo-500 transition-all duration-300 group">
+              <CardHeader className="flex-shrink-0">
+                <div className="flex items-center space-x-3 text-gray-200">
+                  {section.icon}
+                  <CardTitle className="text-lg font-semibold">{section.title}</CardTitle>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No articles found.</p>
-          )}
-        </CardContent>
-      </Card>
+              </CardHeader>
+              <CardContent className="flex-grow flex flex-col justify-between">
+                <p className="text-sm text-gray-400 mb-4">{section.description}</p>
+                <div className="flex items-center justify-end text-sm font-semibold text-indigo-400 group-hover:text-white">
+                  Manage Section
+                  <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
 
-function StatCard({ title, value, description, icon }: { title: string; value: number; description: string; icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Icons
-function DocumentTextIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
-  );
-}
-
-function UserGroupIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function TagIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-      <line x1="7" y1="7" x2="7.01" y2="7" />
-    </svg>
-  );
-}
