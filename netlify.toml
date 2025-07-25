@@ -23,8 +23,13 @@
 
 [[redirects]]
   from = "/admin/*"
-  to = "/sanity/*"
-  status = 200
+  to = "https://tvi7xjbr.sanity.studio/*"
+  status = 301
+
+[[redirects]]
+  from = "/admin"
+  to = "https://tvi7xjbr.sanity.studio"
+  status = 301
 
 # [[redirects]]
 #   from = "/*"
