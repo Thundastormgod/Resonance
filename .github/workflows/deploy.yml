@@ -31,10 +31,10 @@ jobs:
         
     - name: Test Docker containers
       run: |
-        docker-compose up -d
+        docker compose up -d
         sleep 30
         curl -f http://localhost:3000 || exit 1
-        docker-compose down
+        docker compose down
 
   deploy:
     runs-on: ubuntu-latest
