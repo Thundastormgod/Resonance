@@ -1,7 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const getSupabaseEnv = () => {
+  // Vite/Browser environment
+  if (import.meta.env) {
+    return {
+      url: import.meta.env.VITE_SUPABASE_URL!,
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+    };
+  }
+
+  // Netlify/Server environment
+  return {
+    url: process.env.VITE_SUPABASE_URL!,
+    anonKey: process.env.VITE_SUPABASE_ANON_KEY!,
+  };
+};
+
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseEnv();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

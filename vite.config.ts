@@ -7,14 +7,23 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 5174,
+    strictPort: true,
+
+  },
+  build: {
+    rollupOptions: {
+      external: ['@supabase/supabase-js'],
+    },
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   plugins: [
     react(),
   ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
 }));

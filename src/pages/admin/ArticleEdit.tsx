@@ -4,7 +4,6 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +11,9 @@ import { supabase } from '@/lib/supabase';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useEffect } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import '@/styles/quill-editor.css';
 
 const articleSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters long.'),
@@ -154,14 +156,18 @@ export default function AdminArticleEdit() {
               </FormItem>
             )}
           />
-          <FormField
+                    <FormField
             control={form.control}
             name="content"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Content</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Write your article here..." {...field} rows={15} />
+                  <ReactQuill
+                    theme="snow"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

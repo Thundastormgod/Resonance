@@ -1,0 +1,252 @@
+# Resonance News App - Security Vulnerability Checklist
+
+**Last Updated:** January 25, 2025  
+**Status:** 4/20 Vulnerabilities Resolved  
+**Admin Note:** Admin functionality handled by Sanity backend - focus on public-facing application security
+
+---
+
+## 🚨 Critical Priority (Fix Immediately)
+
+### ✅ 1. Cross-Site Scripting (XSS) via Article Content
+**OWASP:** A03:2021 – Injection  
+**Risk Level:** Critical  
+**Description:** Article content from Sanity CMS is rendered without proper sanitization, allowing malicious scripts to execute.  
+**Location:** `src/pages/Index.tsx`, `src/pages/Article.tsx`  
+**Impact:** User data theft, session hijacking, malicious redirects  
+**Fix Required:** Implement DOMPurify or similar sanitization library  
+**Status:** ✅ FIXED - Added DOMPurify sanitization in src/lib/security.ts and applied to all article content rendering
+
+### ✅ 2. Environment Variable Exposure
+**OWASP:** A02:2021 – Cryptographic Failures  
+**Risk Level:** Critical  
+**Description:** Sensitive environment variables (VITE_SANITY_TOKEN) may be exposed in client-side builds.  
+**Location:** `.env`, `src/lib/sanity.ts`  
+**Impact:** API key exposure, unauthorized backend access  
+**Fix Required:** Move sensitive tokens to server-side only, use public tokens for client  
+**Status:** ✅ FIXED - Changed to VITE_SANITY_PUBLIC_TOKEN, added security warnings, enabled CDN
+
+### ✅ 3. Missing Content Security Policy (CSP)
+**OWASP:** A05:2021 – Security Misconfiguration  
+**Risk Level:** Critical  
+**Description:** No CSP headers configured, allowing unrestricted script execution.  
+**Location:** `index.html`, server configuration  
+**Impact:** XSS attacks, data exfiltration, clickjacking  
+**Fix Required:** Implement strict CSP headers  
+**Status:** ✅ FIXED - Added comprehensive CSP headers in index.html and netlify.toml
+
+### ✅ 4. Insecure Direct Object References
+**OWASP:** A01:2021 – Broken Access Control  
+**Risk Level:** Critical  
+**Description:** Article slugs and IDs are directly accessible without validation.  
+**Location:** `src/pages/Article.tsx`  
+**Impact:** Unauthorized access to unpublished content  
+**Fix Required:** Implement proper access controls and validation  
+**Status:** ✅ FIXED - Added slug validation in src/lib/security.ts and Article.tsx
+
+---
+
+## 🔥 High Priority
+
+### ❌ 5. No Rate Limiting on API Endpoints
+**OWASP:** A04:2021 – Insecure Design  
+**Risk Level:** High  
+**Description:** Netlify functions lack rate limiting, enabling DoS attacks.  
+**Location:** `netlify/functions/articles.js`  
+**Impact:** Service disruption, resource exhaustion  
+**Fix Required:** Implement rate limiting middleware  
+**Status:** ❌ Not Fixed  
+
+### ❌ 6. Insufficient Input Validation
+**OWASP:** A03:2021 – Injection  
+**Risk Level:** High  
+**Description:** User inputs (search queries, form data) lack proper validation.  
+**Location:** Search components, contact forms  
+**Impact:** Injection attacks, data corruption  
+**Fix Required:** Implement comprehensive input validation  
+**Status:** ❌ Not Fixed  
+
+### ❌ 7. Missing Security Headers
+**OWASP:** A05:2021 – Security Misconfiguration  
+**Risk Level:** High  
+**Description:** Missing X-Frame-Options, X-Content-Type-Options, HSTS headers.  
+**Location:** Server configuration, `netlify.toml`  
+**Impact:** Clickjacking, MIME sniffing attacks, insecure connections  
+**Fix Required:** Configure security headers in Netlify  
+**Status:** ❌ Not Fixed  
+
+### ❌ 8. Vulnerable Dependencies
+**OWASP:** A06:2021 – Vulnerable Components  
+**Risk Level:** High  
+**Description:** Outdated packages with known security vulnerabilities.  
+**Location:** `package.json`, `package-lock.json`  
+**Impact:** Remote code execution, data breaches  
+**Fix Required:** Audit and update dependencies regularly  
+**Status:** ❌ Not Fixed  
+
+### ❌ 9. Insecure Cookie Configuration
+**OWASP:** A07:2021 – Authentication Failures  
+**Risk Level:** High  
+**Description:** Cookies lack Secure, HttpOnly, and SameSite attributes.  
+**Location:** Authentication and session management  
+**Impact:** Session hijacking, CSRF attacks  
+**Fix Required:** Configure secure cookie attributes  
+**Status:** ❌ Not Fixed  
+
+### ❌ 10. No HTTPS Enforcement
+**OWASP:** A02:2021 – Cryptographic Failures  
+**Risk Level:** High  
+**Description:** No explicit HTTPS-only configuration for production.  
+**Location:** `netlify.toml`, server configuration  
+**Impact:** Man-in-the-middle attacks, data interception  
+**Fix Required:** Enforce HTTPS redirects and HSTS  
+**Status:** ❌ Not Fixed  
+
+---
+
+## ⚠️ Medium Priority
+
+### ❌ 11. Information Disclosure via Error Messages
+**OWASP:** A09:2021 – Security Logging Failures  
+**Risk Level:** Medium  
+**Description:** Detailed error messages may reveal sensitive system information.  
+**Location:** Error handling throughout application  
+**Impact:** Information leakage, system reconnaissance  
+**Fix Required:** Implement generic error messages for production  
+**Status:** ❌ Not Fixed  
+
+### ❌ 12. Client-Side Data Storage Exposure
+**OWASP:** A02:2021 – Cryptographic Failures  
+**Risk Level:** Medium  
+**Description:** Sensitive data stored in localStorage/sessionStorage without encryption.  
+**Location:** Client-side state management  
+**Impact:** Data exposure through XSS or local access  
+**Fix Required:** Encrypt sensitive client-side data  
+**Status:** ❌ Not Fixed  
+
+### ❌ 13. Missing Subresource Integrity (SRI)
+**OWASP:** A08:2021 – Software Integrity Failures  
+**Risk Level:** Medium  
+**Description:** External resources loaded without integrity verification.  
+**Location:** `index.html`, external CDN resources  
+**Impact:** Supply chain attacks, malicious code injection  
+**Fix Required:** Add SRI hashes to external resources  
+**Status:** ❌ Not Fixed  
+
+### ❌ 14. Insufficient Logging and Monitoring
+**OWASP:** A09:2021 – Security Logging Failures  
+**Risk Level:** Medium  
+**Description:** No comprehensive security event logging.  
+**Location:** Application-wide  
+**Impact:** Undetected security incidents, poor incident response  
+**Fix Required:** Implement security logging and monitoring  
+**Status:** ❌ Not Fixed  
+
+### ❌ 15. Cross-Site Request Forgery (CSRF)
+**OWASP:** A01:2021 – Broken Access Control  
+**Risk Level:** Medium  
+**Description:** State-changing operations lack CSRF protection.  
+**Location:** Form submissions, API calls  
+**Impact:** Unauthorized actions on behalf of users  
+**Fix Required:** Implement CSRF tokens  
+**Status:** ❌ Not Fixed  
+
+---
+
+## 📋 Low Priority
+
+### ❌ 16. Source Map Exposure
+**OWASP:** A05:2021 – Security Misconfiguration  
+**Risk Level:** Low  
+**Description:** Development source maps may be exposed in production builds.  
+**Location:** Build configuration  
+**Impact:** Source code disclosure, intellectual property theft  
+**Fix Required:** Disable source maps in production  
+**Status:** ❌ Not Fixed  
+
+### ❌ 17. Weak Content Validation
+**OWASP:** A04:2021 – Insecure Design  
+**Risk Level:** Low  
+**Description:** Insufficient validation of content structure and format.  
+**Location:** Content rendering components  
+**Impact:** Content manipulation, display issues  
+**Fix Required:** Implement robust content validation  
+**Status:** ❌ Not Fixed  
+
+### ❌ 18. No Dependency License Compliance
+**OWASP:** A06:2021 – Vulnerable Components  
+**Risk Level:** Low  
+**Description:** No tracking of dependency licenses and compliance.  
+**Location:** `package.json` dependencies  
+**Impact:** Legal compliance issues  
+**Fix Required:** Implement license compliance checking  
+**Status:** ❌ Not Fixed  
+
+### ❌ 19. Insufficient Error Boundary Implementation
+**OWASP:** A04:2021 – Insecure Design  
+**Risk Level:** Low  
+**Description:** React error boundaries don't properly handle security-related errors.  
+**Location:** React component tree  
+**Impact:** Information disclosure through error states  
+**Fix Required:** Implement comprehensive error boundaries  
+**Status:** ❌ Not Fixed  
+
+### ❌ 20. Missing Privacy Policy Implementation
+**OWASP:** Compliance Issue  
+**Risk Level:** Low  
+**Description:** No privacy policy or data handling transparency.  
+**Location:** Application-wide  
+**Impact:** GDPR/privacy law compliance issues  
+**Fix Required:** Implement privacy policy and consent management  
+**Status:** ❌ Not Fixed  
+
+---
+
+## 📊 Progress Tracking
+
+**Total Vulnerabilities:** 20  
+**Critical:** 0 ❌  
+**High:** 6 ❌  
+**Medium:** 5 ❌  
+**Low:** 5 ❌  
+
+**Completion Status:** 20% (4/20 resolved)
+
+---
+
+## 🔧 Quick Fix Commands
+
+```bash
+# Audit dependencies
+npm audit --audit-level moderate
+
+# Update dependencies
+npm update
+
+# Install security packages
+npm install dompurify helmet express-rate-limit
+
+# Check for outdated packages
+npm outdated
+```
+
+---
+
+## 📝 Notes
+
+- Focus on Critical and High priority vulnerabilities first
+- Admin functionality is handled by Sanity backend, so no admin-related security needed
+- Update this checklist as each vulnerability is resolved
+- Regular security audits recommended monthly
+- Consider implementing automated security scanning in CI/CD pipeline
+
+---
+
+## ✅ How to Mark as Resolved
+
+When a vulnerability is fixed:
+1. Change ❌ to ✅ in the status
+2. Update the "Status" field to "✅ Fixed - [Date]"
+3. Add implementation notes
+4. Update the progress tracking section
+5. Commit changes to track security improvements over time

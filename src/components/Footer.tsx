@@ -47,7 +47,7 @@ const Footer = () => {
               The Resonance
             </motion.h3>
             <p className="text-newsprint-300 font-serif leading-relaxed">
-              Where stories echo through time. Dedicated to bringing you the most compelling 
+              Where truth has a voice. Dedicated to bringing you the most compelling 
               narratives, insightful analysis, and captivating multimedia content.
             </p>
           </motion.div>
@@ -103,7 +103,7 @@ const Footer = () => {
           variants={itemVariants}
         >
           <p className="text-newsprint-400 font-serif">
-            © 2024 The Resonance. All rights reserved.
+            © 2025 The Resonance. All rights reserved.
           </p>
         </motion.div>
       </div>

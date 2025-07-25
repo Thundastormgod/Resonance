@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { AuthProvider } from '@/contexts/AuthContext';
+
 import { Toaster } from '@/components/ui/toaster';
 
 import Index from '@/pages/Index';
 import Article from '@/pages/Article';
 import About from '@/pages/About';
+import Contact from '@/pages/Contact';
 import NotFound from '@/pages/NotFound';
 
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -18,8 +19,7 @@ import ProtectedRoute from '@/components/admin/ProtectedRoute';
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
+    <ThemeProvider>
         <Router>
           <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
             <Routes>
@@ -27,6 +27,7 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/article/:slug" element={<Article />} />
               <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
@@ -42,8 +43,8 @@ function App() {
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="articles" element={<AdminArticles />} />
-                <Route path="articles/new" element={<AdminArticleEdit />} />
-                <Route path="articles/:id/edit" element={<AdminArticleEdit />} />
+                <Route path="edit/articles/new" element={<AdminArticleEdit />} />
+                <Route path="edit/articles/:id" element={<AdminArticleEdit />} />
                 <Route path="content/:sectionType" element={<ContentSection />} />
               </Route>
 
@@ -54,7 +55,6 @@ function App() {
           </div>
         </Router>
       </ThemeProvider>
-    </AuthProvider>
   );
 }
 

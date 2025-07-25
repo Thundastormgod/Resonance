@@ -1,0 +1,513 @@
+# Docker Deployment Guide for Resonance News Application
+
+This guide covers the complete process of containerizing the Resonance News application and deploying it to production using Docker and Netlify.
+
+## Table of Contents
+
+1. [Project Architecture](#project-architecture)
+2. [Docker Setup](#docker-setup)
+3. [Local Development with Docker](#local-development-with-docker)
+4. [Production Deployment](#production-deployment)
+5. [Netlify Deployment with Docker](#netlify-deployment-with-docker)
+6. [Monitoring and Maintenance](#monitoring-and-maintenance)
+7. [Troubleshooting](#troubleshooting)
+
+## Project Architecture
+
+The Resonance News application consists of:
+
+### Frontend
+- **Technology**: React 18 + TypeScript + Vite
+- **UI Framework**: Tailwind CSS + shadcn/ui
+- **Build Output**: Static files served by Nginx
+- **Port**: 3000 (Docker), 80 (Nginx container)
+
+### Backend
+- **CMS**: Sanity Studio (headless CMS)
+- **API**: Sanity's built-in APIs + Netlify Functions
+- **Port**: 3333 (Sanity Studio)
+
+### Infrastructure
+- **Reverse Proxy**: Nginx (for production)
+- **Container Orchestration**: Docker Compose
+- **Deployment**: Netlify (with Docker support)
+
+## Docker Setup
+
+### Prerequisites
+
+1. **Docker Desktop** (v4.0+)
+2. **Docker Compose** (v2.0+)
+3. **Node.js** (v18+) for local development
+4. **Git** for version control
+
+### File Structure
+
+```
+resonance-news-flow/
+├── Dockerfile.frontend          # Frontend container definition
+├── Dockerfile.backend           # Backend (Sanity) container definition
+├── docker-compose.yml           # Multi-container orchestration
+├── nginx.conf                   # Nginx reverse proxy config
+├── .dockerignore               # Docker build exclusions
+├── src/                        # Frontend source code
+├── resonance/                  # Sanity CMS configuration
+├── netlify/                    # Netlify functions
+└── DOCKER_DEPLOYMENT.txt       # This documentation
+```
+
+### Environment Variables
+
+Create a `.env.docker` file for Docker-specific environment variables:
+
+```bash
+# Sanity Configuration
+SANITY_PROJECT_ID=your_project_id
+SANITY_DATASET=production
+SANITY_API_VERSION=2023-05-03
+VITE_SANITY_TOKEN=your_sanity_token
+
+# Application Configuration
+NODE_ENV=production
+VITE_APP_URL=http://localhost:3000
+VITE_SANITY_STUDIO_URL=http://localhost:3333
+
+# Docker Configuration
+COMPOSE_PROJECT_NAME=resonance-news
+```
+
+## Local Development with Docker
+
+### Quick Start
+
+1. **Clone and Setup**
+```bash
+git clone <repository-url>
+cd resonance-news-flow
+cp .env .env.docker  # Copy existing environment variables
+```
+
+2. **Build and Run**
+```bash
+# Build all containers
+docker-compose build
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+3. **Access Applications**
+- Frontend: http://localhost:3000
+- Sanity Studio: http://localhost:3333
+- Nginx Proxy: http://localhost:80
+
+### Development Commands
+
+```bash
+# Stop all services
+docker-compose down
+
+# Rebuild specific service
+docker-compose build frontend
+docker-compose build backend
+
+# Run with live reload (development)
+docker-compose -f docker-compose.dev.yml up
+
+# View service logs
+docker-compose logs frontend
+docker-compose logs backend
+
+# Execute commands in running containers
+docker-compose exec frontend sh
+docker-compose exec backend sh
+
+# Clean up everything
+docker-compose down -v --rmi all
+```
+
+### Development Docker Compose (Optional)
+
+Create `docker-compose.dev.yml` for development with hot reload:
+
+```yaml
+version: '3.8'
+
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: builder
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: builder
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./resonance:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+```
+
+## Production Deployment
+
+### Building Production Images
+
+1. **Build Optimized Images**
+```bash
+# Build frontend production image
+docker build -f Dockerfile.frontend -t resonance-frontend:latest .
+
+# Build backend production image
+docker build -f Dockerfile.backend -t resonance-backend:latest .
+
+# Test production build locally
+docker-compose -f docker-compose.prod.yml up
+```
+
+2. **Production Docker Compose**
+
+Create `docker-compose.prod.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    image: resonance-frontend:latest
+    restart: always
+    environment:
+      - NODE_ENV=production
+    networks:
+      - resonance-network
+
+  backend:
+    image: resonance-backend:latest
+    restart: always
+    environment:
+      - NODE_ENV=production
+    networks:
+      - resonance-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+    networks:
+      - resonance-network
+
+networks:
+  resonance-network:
+    driver: bridge
+```
+
+### Container Registry Setup
+
+1. **Docker Hub**
+```bash
+# Tag images
+docker tag resonance-frontend:latest yourusername/resonance-frontend:latest
+docker tag resonance-backend:latest yourusername/resonance-backend:latest
+
+# Push to Docker Hub
+docker push yourusername/resonance-frontend:latest
+docker push yourusername/resonance-backend:latest
+```
+
+2. **GitHub Container Registry**
+```bash
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Tag and push
+docker tag resonance-frontend:latest ghcr.io/username/resonance-frontend:latest
+docker push ghcr.io/username/resonance-frontend:latest
+```
+
+## Netlify Deployment with Docker
+
+### Option 1: Netlify Build with Docker
+
+Create `netlify.dockerfile` for Netlify's build process:
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Netlify will serve the dist folder
+```
+
+Update `netlify.toml`:
+
+```toml
+[build]
+  command = "docker build -f netlify.dockerfile -t build-image . && docker run --rm -v $(pwd)/dist:/output build-image cp -r /app/dist/. /output/"
+  publish = "dist"
+
+[build.environment]
+  DOCKER_BUILDKIT = "1"
+
+[[plugins]]
+  package = "netlify-plugin-docker"
+```
+
+### Option 2: Container Deployment on Netlify
+
+1. **Netlify Functions with Docker**
+
+Create `netlify/functions/docker-api.js`:
+
+```javascript
+const { spawn } = require('child_process');
+
+exports.handler = async (event, context) => {
+  // Run Docker container for API processing
+  return new Promise((resolve, reject) => {
+    const docker = spawn('docker', [
+      'run', '--rm',
+      'resonance-backend:latest',
+      'node', 'api-handler.js'
+    ]);
+
+    let output = '';
+    docker.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    docker.on('close', (code) => {
+      resolve({
+        statusCode: 200,
+        body: JSON.stringify({ result: output })
+      });
+    });
+  });
+};
+```
+
+2. **Deploy Script**
+
+Create `deploy.sh`:
+
+```bash
+#!/bin/bash
+
+# Build production images
+docker build -f Dockerfile.frontend -t resonance-frontend:prod .
+docker build -f Dockerfile.backend -t resonance-backend:prod .
+
+# Push to registry
+docker push yourusername/resonance-frontend:prod
+docker push yourusername/resonance-backend:prod
+
+# Deploy to Netlify
+netlify deploy --prod --dir=dist
+```
+
+### Option 3: Hybrid Deployment
+
+1. **Frontend**: Deploy static build to Netlify CDN
+2. **Backend**: Deploy Sanity Studio container to cloud provider
+3. **API**: Use Netlify Functions for serverless API endpoints
+
+```bash
+# Build frontend for Netlify
+npm run build
+
+# Deploy frontend
+netlify deploy --prod --dir=dist
+
+# Deploy backend container to cloud provider
+docker push your-registry/resonance-backend:latest
+```
+
+## Monitoring and Maintenance
+
+### Health Checks
+
+Both Dockerfiles include health checks:
+
+```bash
+# Check container health
+docker ps
+docker inspect --format='{{.State.Health.Status}}' container_name
+
+# Manual health check
+curl http://localhost:3000/health
+curl http://localhost:3333/health
+```
+
+### Logging
+
+```bash
+# View all logs
+docker-compose logs
+
+# Follow logs in real-time
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs frontend
+docker-compose logs backend
+
+# Export logs
+docker-compose logs > application.log
+```
+
+### Backup and Recovery
+
+1. **Database Backup** (Sanity)
+```bash
+# Export Sanity dataset
+cd resonance
+npx sanity dataset export production backup.tar.gz
+```
+
+2. **Container Data Backup**
+```bash
+# Backup volumes
+docker run --rm -v resonance_data:/data -v $(pwd):/backup alpine tar czf /backup/backup.tar.gz /data
+```
+
+### Updates and Maintenance
+
+```bash
+# Update base images
+docker-compose pull
+
+# Rebuild with latest dependencies
+docker-compose build --no-cache
+
+# Rolling update (zero downtime)
+docker-compose up -d --no-deps frontend
+docker-compose up -d --no-deps backend
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**
+```bash
+# Check port usage
+lsof -i :3000
+lsof -i :3333
+
+# Use different ports
+docker-compose up -p 3001:80 -p 3334:3333
+```
+
+2. **Build Failures**
+```bash
+# Clear Docker cache
+docker system prune -a
+
+# Build with verbose output
+docker build --no-cache --progress=plain -f Dockerfile.frontend .
+```
+
+3. **Container Won't Start**
+```bash
+# Check container logs
+docker logs container_name
+
+# Inspect container
+docker inspect container_name
+
+# Run container interactively
+docker run -it --entrypoint sh resonance-frontend:latest
+```
+
+4. **Network Issues**
+```bash
+# Check network connectivity
+docker network ls
+docker network inspect resonance-news_resonance-network
+
+# Test container communication
+docker exec frontend ping backend
+```
+
+### Performance Optimization
+
+1. **Multi-stage Builds**: Already implemented in Dockerfiles
+2. **Layer Caching**: Optimize COPY order in Dockerfiles
+3. **Image Size**: Use Alpine Linux base images
+4. **Resource Limits**: Add resource constraints in docker-compose.yml
+
+```yaml
+services:
+  frontend:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+```
+
+### Security Best Practices
+
+1. **Non-root User**: Containers run as non-root users
+2. **Security Headers**: Implemented in Nginx configuration
+3. **Environment Variables**: Use Docker secrets for sensitive data
+4. **Image Scanning**: Regularly scan images for vulnerabilities
+
+```bash
+# Scan images for vulnerabilities
+docker scout cves resonance-frontend:latest
+docker scout cves resonance-backend:latest
+```
+
+## Conclusion
+
+This Docker setup provides:
+
+- ✅ **Containerized Development**: Consistent environment across all machines
+- ✅ **Production Ready**: Optimized multi-stage builds
+- ✅ **Scalable**: Easy horizontal scaling with Docker Compose
+- ✅ **Secure**: Security headers, non-root users, health checks
+- ✅ **Maintainable**: Clear separation of concerns, comprehensive logging
+- ✅ **Netlify Compatible**: Multiple deployment strategies supported
+
+For additional support or questions, refer to:
+- [Docker Documentation](https://docs.docker.com/)
+- [Netlify Documentation](https://docs.netlify.com/)
+- [Sanity Documentation](https://www.sanity.io/docs)
+
+---
+
+**Last Updated**: January 2025
+**Version**: 1.0.0

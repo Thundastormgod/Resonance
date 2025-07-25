@@ -15,24 +15,25 @@ const About = () => {
               About The Resonance
             </h1>
             <p className="text-xl text-gray-700 font-serif italic">
-              Where Stories Echo Through Time
+              Where Truth has a voice.
             </p>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">
               <section>
-                <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">Our Mission</h2>
+                <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">Our Origin </h2>
                 <p className="text-lg leading-relaxed text-gray-700 mb-4">
-                  The Resonance was founded on the belief that exceptional storytelling has the power to create 
-                  understanding, inspire change, and connect people across all boundaries. In an age of information 
-                  overload, we curate and create content that matters—stories that resonate long after you've 
-                  finished reading.
+                For Resonance, the core of it all began in the early 2000s on the “flint” street in Minna where the daily hum of life began around the rustle of newspapers. In that small local town,  news was not just consumed, it was debated, lived and passed around with fervour; the very passion with which we picked up a pen at Resonance, not just how to write, but why it mattered.
                 </p>
                 <p className="text-lg leading-relaxed text-gray-700">
-                  Our newsroom combines traditional journalistic rigor with innovative multimedia storytelling, 
-                  bringing you in-depth features, breaking news analysis, and thought-provoking opinion pieces 
-                  that illuminate the complexities of our interconnected world.
+                  The Resonance is more than a publication; it is the continuation of a long, lived experience built on years of observation, study, and practice. It stands as a space for journalism with purpose, offering stories that endure beyond the moment.
+
+                </p>
+
+                <p className="text-lg leading-relaxed text-gray-700">
+                We have come a long way from the streets of Minna, but the heart of what we do remains the same: give truth a voice that resonates.
+                  
                 </p>
               </section>
 
@@ -75,7 +76,7 @@ const About = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-center">
                     <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4"></div>
-                    <h3 className="font-serif text-lg font-semibold">Sarah Chen</h3>
+                    <h3 className="font-serif text-lg font-semibold">Oyinade Alofetekun</h3>
                     <p className="text-gray-600">Editor-in-Chief</p>
                     <p className="text-sm text-gray-500 mt-2">Former Reuters correspondent with 15 years covering technology and society</p>
                   </div>
@@ -98,7 +99,7 @@ const About = () => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Mail size={16} />
-                    <span className="text-sm">editorial@theresonance.com</span>
+                    <span className="text-sm">editorial@theresonance.news</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone size={16} />

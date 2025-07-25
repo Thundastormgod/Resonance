@@ -1,0 +1,396 @@
+# Resonance News - Complete Deployment Pipeline
+
+This document describes the complete development-to-production pipeline for the Resonance News application using Docker and Netlify.
+
+## 🚀 Quick Start
+
+### Development
+```bash
+# Traditional development
+npm run dev
+
+# Docker-based development
+npm run docker:dev
+```
+
+### Production Deployment
+```bash
+# Full pipeline (build + test + deploy)
+npm run pipeline:full
+
+# Deploy to Netlify only
+npm run deploy:netlify
+
+# Deploy Docker images to registry
+npm run deploy:docker
+```
+
+## 📋 Pipeline Overview
+
+The deployment pipeline consists of three main stages:
+
+1. **Development** → Local development with hot reload
+2. **Docker** → Containerized testing and building
+3. **Production** → Deployment to Netlify and container registry
+
+### Pipeline Architecture
+
+```
+Development Environment:
+├── npm run dev (Traditional)
+│   ├── Vite Dev Server (localhost:5174)
+│   ├── Netlify Dev (localhost:5173)
+│   └── Sanity Studio (localhost:3333)
+│
+└── npm run docker:dev (Containerized)
+    ├── Frontend Container (localhost:3000)
+    ├── Backend Container (localhost:3333)
+    └── Nginx Proxy (localhost:80)
+
+Production Pipeline:
+├── Docker Build
+│   ├── Frontend Image (Nginx + React build)
+│   ├── Backend Image (Sanity Studio)
+│   └── Netlify Image (Static build extraction)
+│
+├── Testing
+│   ├── Container Health Checks
+│   ├── Endpoint Testing
+│   └── Integration Testing
+│
+└── Deployment
+    ├── Netlify (Static frontend)
+    ├── Container Registry (Docker images)
+    └── GitHub Actions (CI/CD)
+```
+
+## 🛠️ Available Commands
+
+### Development Commands
+```bash
+npm run dev                 # Start traditional development server
+npm run docker:dev          # Start Docker development environment
+npm run docker:stop         # Stop Docker containers
+npm run docker:clean        # Clean up Docker resources
+```
+
+### Build Commands
+```bash
+npm run build              # Traditional Vite build
+npm run docker:build       # Build Docker images
+npm run docker:test        # Test Docker containers
+```
+
+### Deployment Commands
+```bash
+npm run deploy:netlify     # Deploy to Netlify using Docker pipeline
+npm run deploy:docker      # Push Docker images to registry
+npm run pipeline:full      # Complete pipeline (build + test + deploy)
+```
+
+### Utility Commands
+```bash
+./deploy.sh status         # Show container status
+./deploy.sh clean          # Clean up everything
+./deploy.sh --help         # Show all available options
+```
+
+## 🔧 Configuration Files
+
+### Core Pipeline Files
+- `deploy.sh` - Main deployment script with full pipeline logic
+- `netlify.dockerfile` - Optimized Dockerfile for Netlify deployment
+- `docker-compose.yml` - Base Docker Compose configuration
+- `docker-compose.override.yml` - Development overrides
+- `docker-compose.prod.yml` - Production configuration
+
+### Deployment Configuration
+- `netlify.toml` - Netlify deployment settings (Docker-enabled)
+- `.github/workflows/deploy.yml` - GitHub Actions CI/CD pipeline
+- `package.json` - NPM scripts for pipeline commands
+
+### Docker Images
+- `Dockerfile.frontend` - Frontend production image (Nginx + React)
+- `Dockerfile.backend` - Backend image (Sanity Studio)
+- `netlify.dockerfile` - Netlify-optimized build image
+
+## 🌐 Deployment Strategies
+
+### Strategy 1: Netlify with Docker Build (Recommended)
+This strategy uses Docker to build the application and extracts static files for Netlify deployment.
+
+**Pros:**
+- Consistent build environment
+- Docker benefits for development
+- Netlify CDN for frontend
+- Cost-effective
+
+**Cons:**
+- Backend (Sanity Studio) needs separate hosting
+
+**Usage:**
+```bash
+npm run deploy:netlify
+```
+
+### Strategy 2: Full Container Deployment
+Deploy both frontend and backend as containers to a container platform.
+
+**Pros:**
+- Complete containerization
+- Easy scaling
+- Consistent environments
+
+**Cons:**
+- Higher hosting costs
+- More complex setup
+
+**Usage:**
+```bash
+npm run deploy:docker
+```
+
+### Strategy 3: Hybrid Deployment
+Frontend on Netlify, Backend containers on cloud provider.
+
+**Pros:**
+- Best of both worlds
+- Optimized costs
+- Scalable backend
+
+**Usage:**
+```bash
+npm run deploy:netlify  # Frontend to Netlify
+npm run deploy:docker   # Backend to container registry
+```
+
+## 🔄 Development Workflow
+
+### 1. Local Development
+```bash
+# Start development environment
+npm run dev
+
+# Or use Docker for development
+npm run docker:dev
+```
+
+### 2. Testing Changes
+```bash
+# Test with Docker locally
+npm run docker:test
+
+# Check container status
+./deploy.sh status
+```
+
+### 3. Deployment
+```bash
+# Full production deployment
+npm run pipeline:full
+
+# Or deploy specific components
+npm run deploy:netlify    # Frontend only
+npm run deploy:docker     # Containers only
+```
+
+## 🔒 Environment Variables
+
+### Required for Deployment
+```bash
+# Netlify
+NETLIFY_AUTH_TOKEN=your_netlify_token
+NETLIFY_SITE_ID=your_site_id
+
+# GitHub Container Registry (optional)
+GITHUB_TOKEN=your_github_token
+GITHUB_USERNAME=your_username
+
+# Sanity
+SANITY_PROJECT_ID=your_project_id
+SANITY_DATASET=production
+VITE_SANITY_TOKEN=your_sanity_token
+```
+
+### Setting Up Environment Variables
+
+1. **Local Development (.env)**
+```bash
+cp .env.example .env
+# Edit .env with your values
+```
+
+2. **Netlify Dashboard**
+- Go to Site Settings → Environment Variables
+- Add all required variables
+
+3. **GitHub Secrets**
+- Go to Repository Settings → Secrets and Variables → Actions
+- Add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID
+
+## 🧪 Testing
+
+### Local Testing
+```bash
+# Test Docker build
+npm run docker:build
+
+# Test containers locally
+npm run docker:test
+
+# Manual testing
+curl http://localhost:3000  # Frontend
+curl http://localhost:3333  # Backend
+curl http://localhost:80    # Nginx proxy
+```
+
+### CI/CD Testing
+The GitHub Actions workflow automatically:
+- Builds Docker images
+- Tests container functionality
+- Runs health checks
+- Deploys on success
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Docker Build Fails**
+```bash
+# Check Docker daemon
+docker --version
+
+# Clean build cache
+docker system prune -a
+
+# Rebuild with verbose output
+docker build --no-cache --progress=plain -f Dockerfile.frontend .
+```
+
+2. **Netlify Deployment Fails**
+```bash
+# Check Netlify CLI
+netlify --version
+
+# Login to Netlify
+netlify login
+
+# Check site status
+netlify status
+```
+
+3. **Container Health Check Fails**
+```bash
+# Check container logs
+docker-compose logs frontend
+docker-compose logs backend
+
+# Check container status
+docker-compose ps
+
+# Test endpoints manually
+curl -v http://localhost:3000
+```
+
+### Debug Commands
+```bash
+# Show detailed container information
+docker inspect resonance-frontend
+
+# Execute commands in running container
+docker exec -it resonance-frontend sh
+
+# View real-time logs
+docker-compose logs -f
+
+# Check resource usage
+docker stats
+```
+
+## 📊 Monitoring
+
+### Health Checks
+All containers include built-in health checks:
+- Frontend: HTTP check on port 80
+- Backend: HTTP check on port 3333
+- Nginx: HTTP check on /health endpoint
+
+### Logging
+```bash
+# View all logs
+docker-compose logs
+
+# Follow logs in real-time
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs frontend
+```
+
+### Performance Monitoring
+- Container resource usage: `docker stats`
+- Netlify analytics: Available in Netlify dashboard
+- Application performance: Configure monitoring tools as needed
+
+## 🔄 Continuous Integration
+
+### GitHub Actions Workflow
+The pipeline automatically:
+1. **Test Phase**
+   - Builds Docker images
+   - Runs container tests
+   - Validates health checks
+
+2. **Deploy Phase** (on main branch)
+   - Builds production images
+   - Deploys to Netlify
+   - Pushes to container registry
+
+### Manual Deployment
+```bash
+# Deploy from local machine
+npm run pipeline:full
+
+# Deploy specific components
+npm run deploy:netlify
+npm run deploy:docker
+```
+
+## 📚 Best Practices
+
+### Development
+- Use `npm run docker:dev` for testing containerized environment
+- Keep environment variables in `.env` file (not committed)
+- Test locally before pushing to main branch
+
+### Production
+- Always test Docker builds locally first
+- Use semantic versioning for Docker image tags
+- Monitor deployment logs and health checks
+- Keep secrets secure in CI/CD environment
+
+### Maintenance
+- Regularly update base Docker images
+- Clean up unused Docker resources: `npm run docker:clean`
+- Monitor container resource usage
+- Update dependencies regularly
+
+## 🎯 Next Steps
+
+1. **Set up environment variables** in Netlify and GitHub
+2. **Test the pipeline locally**: `npm run pipeline:full`
+3. **Push to main branch** to trigger automatic deployment
+4. **Monitor deployment** in Netlify dashboard and GitHub Actions
+
+## 📞 Support
+
+For issues with:
+- **Docker**: Check Docker documentation and container logs
+- **Netlify**: Check Netlify documentation and deployment logs
+- **Pipeline**: Review `deploy.sh` script and GitHub Actions workflow
+
+---
+
+**Pipeline Version**: 1.0.0  
+**Last Updated**: January 2025  
+**Compatible with**: Node.js 20+, Docker 20+, Netlify CLI 15+

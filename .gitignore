@@ -1,4 +1,7 @@
 # Logs
+
+# Markdown files
+*.md
 logs
 *.log
 npm-debug.log*
@@ -25,3 +28,6 @@ dist-ssr
 
 # Environment variables
 .env
+
+# Local Netlify folder
+.netlify

@@ -1,227 +1,42 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 250 248 245;
-    --foreground: 57 52 46;
-    --card: 250 248 245;
-    --card-foreground: 57 52 46;
-    --popover: 250 248 245;
-    --popover-foreground: 57 52 46;
-    --primary: 61 61 61;
-    --primary-foreground: 250 248 245;
-    --secondary: 235 230 223;
-    --secondary-foreground: 132 113 101;
-    --muted: 235 230 223;
-    --muted-foreground: 157 138 122;
-    --accent: 235 230 223;
-    --accent-foreground: 132 113 101;
+    --background: 40 100% 98%;      /* off-white */
+    --foreground: 220 30% 15%;      /* deep-navy */
+    --card: 40 100% 98%;            /* off-white */
+    --card-foreground: 220 30% 15%; /* deep-navy */
+    --popover: 40 100% 98%;         /* off-white */
+    --popover-foreground: 220 30% 15%; /* deep-navy */
+    --primary: 45 76% 53%;          /* warm-gold */
+    --primary-foreground: 220 30% 15%; /* deep-navy */
+    --secondary: 215 15% 45%;       /* slate-gray */
+    --secondary-foreground: 40 100% 98%; /* off-white */
+    --muted: 90 15% 60%;            /* sage-green */
+    --muted-foreground: 220 30% 15%; /* deep-navy */
+    --accent: 0 30% 40%;            /* muted-burgundy */
+    --accent-foreground: 40 100% 98%; /* off-white */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 250 248 245;
-    --border: 221 213 203;
-    --input: 221 213 203;
-    --ring: 132 113 101;
+    --destructive-foreground: 40 100% 98%; /* off-white */
+    --border: 215 15% 45%;          /* slate-gray */
+    --input: 215 15% 45%;           /* slate-gray */
+    --ring: 45 76% 53%;             /* warm-gold */
     --radius: 0.5rem;
   }
 
-  .dark {
-    --background: 45 45 45;
-    --foreground: 245 243 240;
-    --card: 35 35 35;
-    --card-foreground: 245 243 240;
-    --popover: 35 35 35;
-    --popover-foreground: 245 243 240;
-    --primary: 245 243 240;
-    --primary-foreground: 45 45 45;
-    --secondary: 69 58 52;
-    --secondary-foreground: 245 243 240;
-    --muted: 55 55 55;
-    --muted-foreground: 181 163 148;
-    --accent: 55 55 55;
-    --accent-foreground: 245 243 240;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 245 243 240;
-    --border: 69 58 52;
-    --input: 55 55 55;
-    --ring: 181 163 148;
-  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-newsprint-100 text-foreground transition-colors duration-300;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    @apply bg-background text-foreground;
+    font-family: theme('fontFamily.sans');
   }
-
-  .dark body {
-    @apply bg-ink-900 text-newsprint-100;
-  }
-
-  /* Enhanced newspaper print texture (removed) */
-
-  /* Force override for background color */
-  body .newspaper-texture {
-    background-image: none !important;
-    background-color: #f5f3f0 !important;
-  }
-
-  /* Enhanced ink bleed effect */
-  .ink-bleed {
-    text-shadow: 
-      0.5px 0.5px 0 rgba(87, 77, 69, 0.15),
-      1px 1px 0 rgba(87, 77, 69, 0.08),
-      1.5px 1.5px 0 rgba(87, 77, 69, 0.05);
-  }
-
-  .dark .ink-bleed {
-    text-shadow: 
-      0.5px 0.5px 0 rgba(245, 243, 240, 0.15),
-      1px 1px 0 rgba(245, 243, 240, 0.08),
-      1.5px 1.5px 0 rgba(245, 243, 240, 0.05);
-  }
-
-  /* Typography enhancements */
-  .newspaper-headline {
-    font-family: 'Playfair Display', 'Times New Roman', serif;
-    font-weight: 900;
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-  }
-
-  .newspaper-subhead {
-    font-family: 'Playfair Display', 'Times New Roman', serif;
-    font-weight: 600;
-    line-height: 1.1;
-  }
-
-  .newspaper-body {
-    font-family: 'Inter', 'Georgia', serif;
-    line-height: 1.7;
-    text-align: justify;
-    hyphens: auto;
-  }
-
-  .newspaper-byline {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.8rem;
-  }
-
-  .newspaper-kicker {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 0.7rem;
-  }
-}
-
-@layer components {
-  /* Enhanced newspaper rules */
-  .newspaper-rule {
-    @apply border-t border-ink-300 dark:border-newsprint-600;
-    background: linear-gradient(90deg, 
-      rgba(87, 77, 69, 0.2) 0%, 
-      rgba(87, 77, 69, 0.5) 50%, 
-      rgba(87, 77, 69, 0.2) 100%);
-    height: 1px;
-    border: none;
-  }
-
-  .dark .newspaper-rule {
-    background: linear-gradient(90deg, 
-      rgba(245, 243, 240, 0.2) 0%, 
-      rgba(245, 243, 240, 0.4) 50%, 
-      rgba(245, 243, 240, 0.2) 100%);
-  }
-
-  /* Enhanced shadows */
-  .newsprint-shadow {
-    box-shadow: 
-      0 2px 4px rgba(87, 77, 69, 0.1),
-      0 4px 8px rgba(87, 77, 69, 0.05),
-      0 8px 16px rgba(87, 77, 69, 0.03);
-  }
-
-  .dark .newsprint-shadow {
-    box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      0 4px 8px rgba(0, 0, 0, 0.15),
-      0 8px 16px rgba(0, 0, 0, 0.08);
-  }
-
-  /* Masthead styling */
-  .masthead-border {
-    border-top: 3px solid theme('colors.ink.800');
-    border-bottom: 2px solid theme('colors.ink.600');
-    position: relative;
-  }
-
-  .dark .masthead-border {
-    border-top: 3px solid theme('colors.newsprint.200');
-    border-bottom: 2px solid theme('colors.newsprint.400');
-  }
-
-  .masthead-border::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: theme('colors.ink.400');
-  }
-
-  .dark .masthead-border::before {
-    background: theme('colors.newsprint.600');
-  }
-
-  /* Column layouts */
-  .newspaper-columns {
-    column-gap: 2rem;
-    column-fill: balance;
-  }
-
-  .newspaper-columns p {
-    break-inside: avoid;
-    margin-bottom: 1rem;
-  }
-
-  /* Pull quote styling */
-  .pull-quote {
-    @apply border-l-4 border-ink-700 dark:border-newsprint-300 pl-6 my-8;
-    background: linear-gradient(45deg, 
-      rgba(235, 230, 223, 0.3) 0%, 
-      rgba(235, 230, 223, 0.1) 100%);
-  }
-
-  .dark .pull-quote {
-    background: linear-gradient(45deg, 
-      rgba(69, 58, 52, 0.3) 0%, 
-      rgba(69, 58, 52, 0.1) 100%);
-  }
-}
-
-/* Print styles for authenticity */
-@media print {
-  body {
-    @apply text-black bg-white;
-  }
-  
-  .newspaper-texture {
-    background: none;
-  }
-  
-  .newsprint-shadow {
-    box-shadow: none;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: theme('fontFamily.serif');
   }
 }

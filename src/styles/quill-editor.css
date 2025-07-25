@@ -1,0 +1,35 @@
+.ql-toolbar {
+  background-color: #1f2937; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.ql-container {
+  background-color: #111827; /* gray-900 */
+  color: #d1d5db; /* gray-300 */
+  border-color: #374151 !important; /* gray-700 */
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  min-height: 300px;
+}
+
+.ql-editor {
+  font-family: inherit;
+}
+
+.ql-snow .ql-stroke {
+  stroke: #9ca3af; /* gray-400 */
+}
+
+.ql-snow .ql-picker-label {
+  color: #9ca3af; /* gray-400 */
+}
+
+.ql-snow .ql-active .ql-stroke {
+  stroke: #ffffff;
+}
+
+.ql-snow .ql-active .ql-fill {
+  fill: #ffffff;
+}

@@ -18,7 +18,7 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export default function AuthProvider({ children }: AuthProviderProps) {
   // Subscribe to the store and get the state
   const authState = useAuthStore(state => state);
 

@@ -22,9 +22,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
   isAdmin: true,
-  login: async () => {
-    console.log('Login function is disabled in development mode.');
-    return Promise.resolve();
+  login: async (email, password) => {
+    console.log('Attempting mock login...');
+    if (email === 'admin@example.com' && password === 'password') {
+      console.log('Mock login successful');
+      set({
+        user: { id: 'dev-admin-user', email: 'admin@example.com' } as any,
+        session: { access_token: 'dev-token', token_type: 'bearer', user: { id: 'dev-admin-user' } } as any,
+        role: 'admin',
+        isAdmin: true,
+        isLoading: false,
+        error: null,
+      });
+      return Promise.resolve();
+    }
+    console.log('Mock login failed: Invalid credentials');
+    const error = 'Invalid credentials';
+    set({ isLoading: false, error });
+    return Promise.reject(new Error(error));
   },
   logout: async () => {
     set({
@@ -42,7 +57,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     return Promise.resolve();
   },
 }));
-
-
-
-

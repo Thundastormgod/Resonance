@@ -1,0 +1,92 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test Docker Build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker images
+      run: |
+        docker build -f Dockerfile.frontend -t resonance-frontend:test .
+        docker build -f Dockerfile.backend -t resonance-backend:test .
+        
+    - name: Test Docker containers
+      run: |
+        docker-compose up -d
+        sleep 30
+        curl -f http://localhost:3000 || exit 1
+        docker-compose down
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    name: Deploy to Netlify
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build with Docker
+      run: |
+        docker build -f netlify.dockerfile -t resonance-netlify:latest .
+        mkdir -p netlify-deploy
+        docker run --rm -v $(pwd)/netlify-deploy:/netlify resonance-netlify:latest
+        
+    - name: Deploy to Netlify
+      uses: netlify/actions/cli@master
+      with:
+        args: deploy --prod --dir=netlify-deploy
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        
+    - name: Login to GitHub Container Registry
+      if: success()
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build and push Docker images
+      if: success()
+      run: |
+        # Tag images
+        docker build -f Dockerfile.frontend -t ghcr.io/${{ github.repository }}/frontend:latest .
+        docker build -f Dockerfile.backend -t ghcr.io/${{ github.repository }}/backend:latest .
+        
+        # Push images
+        docker push ghcr.io/${{ github.repository }}/frontend:latest
+        docker push ghcr.io/${{ github.repository }}/backend:latest

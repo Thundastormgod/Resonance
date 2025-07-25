@@ -1,206 +1,461 @@
-import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { client, urlFor, createLiveQuery, createPollingQuery, forceRefreshArticles } from '@/lib/sanity';
+import { sanitizeText, validateSlug } from '@/lib/security';
+import { getSafeArticleSelections, ValidationResult } from '@/lib/articleValidation';
 import Header from '../components/Header';
-import ArticleCard from '../components/ArticleCard';
 import Footer from '../components/Footer';
-import { Clock, TrendingUp, Globe, Video, Camera, Loader2 } from 'lucide-react';
+import { Loader2, Video, Clock, TrendingUp, User, Calendar } from 'lucide-react';
+import { SanityImageSource } from '@sanity/image-url/lib/types/types';
+import { formatDistanceToNow } from 'date-fns';
 
 // Types
 interface Article {
-  id: string;
+  _id: string;
   title: string;
-  content: string;
-  created_at: string;
-  image_url: string | null;
-  video_url?: string | null;
-  authors: { name: string }[] | null;
-  categories: { name: string }[] | null;
+  slug: { current: string };
+  publishedAt: string;
+  mainImage: SanityImageSource;
+  excerpt: string;
+  isLeadStory: boolean;
+  isFeatured: boolean;
+  isBreakingNews: boolean;
+  readCount: number;
+  mediaType: 'standard' | 'video';
+  author: {
+    name: string;
+  };
+  categories: {
+    title: string;
+  }[];
+  isLatestUpdate: boolean;
 }
 
-const SectionHeader = ({ title, icon }: { title: string; icon: React.ReactNode }) => (
-  <div className="flex items-center mb-6">
-    <h2 className="newspaper-headline text-3xl text-ink-900 dark:text-newsprint-100 ink-bleed">{title}</h2>
-    <div className="flex-1 h-px newspaper-rule ml-6"></div>
-    <div className="text-ink-600 dark:text-newsprint-400 ml-4">
-      {icon}
-    </div>
-  </div>
-);
-
-// Data fetching function
-const fetchArticles = async (section: 'lead' | 'featured' | 'latest') => {
-  let query = supabase
-    .from('articles')
-    .select('id, title, content, created_at, image_url, video_url, authors(name), categories(name)')
-    .eq('published', true)
-    .order('created_at', { ascending: false });
-
-  if (section === 'lead') {
-    query = query.eq('is_lead_story', true).limit(1);
-  } else if (section === 'featured') {
-    query = query.eq('is_featured', true).limit(4);
-  } else {
-    query = query.limit(5);
-  }
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data as Article[];
-};
+const query = `*[_type == "article"] | order(publishedAt desc) {
+  _id,
+  title,
+  slug,
+  publishedAt,
+  mainImage,
+  excerpt,
+  isLeadStory,
+  isFeatured,
+  isBreakingNews,
+  readCount,
+  mediaType,
+  author->{
+    name,
+  },
+  categories[]->{
+    title,
+  },
+  isLatestUpdate
+}`;
 
 const Index = () => {
-  const { data: leadStoryData, isLoading: isLoadingLead } = useQuery({ 
-    queryKey: ['articles', 'lead'], 
-    queryFn: () => fetchArticles('lead') 
-  });
-  const { data: featuredStories, isLoading: isLoadingFeatured } = useQuery({ 
-    queryKey: ['articles', 'featured'], 
-    queryFn: () => fetchArticles('featured') 
-  });
-  const { data: latestStories, isLoading: isLoadingLatest } = useQuery({ 
-    queryKey: ['articles', 'latest'], 
-    queryFn: () => fetchArticles('latest') 
-  });
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'live' | 'polling' | 'offline'>('connecting');
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [forceRefreshCount, setForceRefreshCount] = useState(0);
+  const pollingQueryRef = useRef<ReturnType<typeof createPollingQuery> | null>(null);
+  const liveQueryRef = useRef<any>(null);
+  const lastRefreshRef = useRef<number>(0);
 
-  const leadStory = leadStoryData?.[0];
+  useEffect(() => {
+    const fetchArticles = async (useForceRefresh = false) => {
+      setLoading(true);
+      try {
+        let fetchedArticles: Article[];
+        
+        if (useForceRefresh) {
+          console.log('🚀 Using force refresh for immediate update');
+          fetchedArticles = await forceRefreshArticles<Article>(query);
+          setForceRefreshCount(prev => prev + 1);
+        } else {
+          fetchedArticles = await client.fetch<Article[]>(query);
+        }
+        
+        console.log('Fetched articles:', fetchedArticles);
+        console.log('Articles with readCount:', fetchedArticles.filter(a => a.readCount));
+        console.log('Articles with isLatestUpdate:', fetchedArticles.filter(a => a.isLatestUpdate));
+        setArticles(fetchedArticles);
+        setLastUpdated(new Date());
+        lastRefreshRef.current = Date.now();
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      }
+      setLoading(false);
+    };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
+    // Initial fetch
+    fetchArticles();
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
+    // Set up real-time updates with multiple fallback strategies
+    const setupRealTimeUpdates = () => {
+      // Strategy 1: Try Sanity's live query (real-time)
+      try {
+        const liveQuery = createLiveQuery<Article>(query);
+        liveQueryRef.current = liveQuery.listen(
+          (updatedArticles) => {
+            console.log('🔴 Live update received:', updatedArticles.length, 'articles');
+            setArticles(updatedArticles as Article[]);
+            setLastUpdated(new Date());
+            setIsLiveMode(true);
+            setConnectionStatus('live');
+            lastRefreshRef.current = Date.now();
+            
+            // Force immediate refresh if lead story or breaking news changes detected
+            const hasLeadOrBreaking = (updatedArticles as Article[]).some(a => a.isLeadStory || a.isBreakingNews);
+            if (hasLeadOrBreaking) {
+              console.log('🚀 Lead/Breaking news change detected, forcing immediate refresh');
+              setTimeout(() => fetchArticles(true), 100); // Small delay to ensure backend is updated
+            }
+          },
+          (error) => {
+            console.warn('Live query failed, falling back to polling:', error);
+            setIsLiveMode(false);
+            setConnectionStatus('polling');
+            // Fallback to polling if live query fails
+            setupPolling();
+          }
+        );
+      } catch (error) {
+        console.warn('Live query setup failed, using polling:', error);
+        setupPolling();
+      }
+    };
 
-  const isLoading = isLoadingLead || isLoadingFeatured || isLoadingLatest;
+    // Strategy 2: Polling fallback (every 30 seconds)
+    const setupPolling = () => {
+      if (pollingQueryRef.current?.isActive()) {
+        return; // Already polling
+      }
+      
+      // Reduced polling interval for immediate responsiveness (10 seconds)
+      pollingQueryRef.current = createPollingQuery<Article>(query, {}, 10000);
+      pollingQueryRef.current.start(
+        (updatedArticles) => {
+          console.log('🟡 Polling update received:', updatedArticles.length, 'articles');
+          setArticles(updatedArticles as Article[]);
+          setLastUpdated(new Date());
+          setConnectionStatus('polling');
+          lastRefreshRef.current = Date.now();
+          
+          // Check if this is a significant change (lead story or breaking news)
+          const hasLeadOrBreaking = (updatedArticles as Article[]).some(a => a.isLeadStory || a.isBreakingNews);
+          if (hasLeadOrBreaking && Date.now() - lastRefreshRef.current > 5000) {
+            console.log('🚀 Significant change detected, triggering force refresh');
+            setTimeout(() => fetchArticles(true), 200);
+          }
+        },
+        (error) => {
+          console.error('Polling query error:', error);
+          setConnectionStatus('offline');
+        }
+      );
+    };
 
-  const trending = [
-    { title: 'Understanding the new off-side rule in soccer', date: '3h ago' },
-    { title: 'The 10 best-dressed celebrities at the Met Gala', date: '22h ago' },
-    { title: 'Is the four-day work week the future?', date: '2d ago' },
-    { title: 'A guide to the latest smartphone releases', date: '1d ago' },
-  ];
+    // Start real-time updates after initial fetch
+    setupRealTimeUpdates();
+
+    // Cleanup function
+    return () => {
+      if (liveQueryRef.current && typeof liveQueryRef.current.unsubscribe === 'function') {
+        liveQueryRef.current.unsubscribe();
+      }
+      if (pollingQueryRef.current) {
+        pollingQueryRef.current.stop();
+      }
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex-grow flex justify-center items-center">
+        <Loader2 className="h-16 w-16 animate-spin text-warm-gold" />
+      </div>
+    );
+  }
+
+  // 🔒 STRONG ENFORCEMENT: Use validation utility to enforce all rules
+  const safeSelections = getSafeArticleSelections(articles);
+  const {
+    breakingNewsArticle,
+    leadStory,
+    featuredArticles,
+    latestUpdates,
+    videoArticles,
+    trendingArticles,
+    validation
+  } = safeSelections;
+  
+  // Update validation state for UI display
+  if (validation && JSON.stringify(validation) !== JSON.stringify(validationResult)) {
+    setValidationResult(validation);
+  }
+  
+  // 🔒 STRICT ENFORCEMENT: No fallback logic - only properly tagged articles are displayed
+  // If no articles are tagged for a section, that section will be empty
+  
+  console.log('🔒 ENFORCED SELECTIONS:');
+  console.log('- Breaking News:', breakingNewsArticle?.title || 'None');
+  console.log('- Lead Story:', leadStory?.title || 'None');
+  console.log('- Featured Articles:', featuredArticles.length);
+  console.log('- Latest Updates:', latestUpdates.length);
+  console.log('- Video Articles:', videoArticles.length);
+  console.log('- Trending Articles:', trendingArticles.length);
 
   return (
-    <div className="min-h-screen newspaper-texture transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
       
-      <motion.main
-        className="container mx-auto px-4 py-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-ink-500" />
-          </div>
-        ) : (
-          <>
-            <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12" variants={itemVariants}>
-              <div className="lg:col-span-2">
-                {leadStory && (
-                  <ArticleCard 
-                    isLead
-                    title={leadStory.title}
-                    excerpt={leadStory.content.substring(0, 200) + '...'}
-                    author={leadStory.authors?.[0]?.name || 'N/A'}
-                    date={formatDistanceToNow(new Date(leadStory.created_at)) + ' ago'}
-                    category={leadStory.categories?.[0]?.name || 'N/A'}
-                    image={leadStory.image_url || undefined}
-                    hasVideo={!!leadStory.video_url}
-                  />
+      {/* Real-time Status Indicator */}
+      <div className="bg-slate-100 border-b border-gray-200 px-4 py-2">
+        <div className="container mx-auto flex items-center justify-between text-sm">
+          <div className="flex items-center space-x-4">
+            {/* Real-time Status Indicator */}
+            <div className="flex items-center space-x-2">
+              <div className="text-sm font-medium">
+                {connectionStatus === 'live' && '🔴 Live Updates Active'}
+                {connectionStatus === 'polling' && '🟡 Polling Mode'}
+                {connectionStatus === 'connecting' && '🔵 Connecting...'}
+                {connectionStatus === 'offline' && '🔴 Offline'}
+              </div>
+              <div className="text-xs text-gray-500">
+                Last: {lastUpdated.toLocaleTimeString()}
+                {forceRefreshCount > 0 && (
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                    🚀 {forceRefreshCount} instant updates
+                  </span>
                 )}
               </div>
-              <div className="flex flex-col justify-between space-y-6">
-                {featuredStories?.slice(0, 1).map((story) => (
-                  <ArticleCard 
-                    key={story.id}
-                    title={story.title}
-                    excerpt={story.content.substring(0, 100) + '...'}
-                    author={story.authors?.[0]?.name || 'N/A'}
-                    date={formatDistanceToNow(new Date(story.created_at)) + ' ago'}
-                    category={story.categories?.[0]?.name || 'N/A'}
-                    image={story.image_url || undefined}
-                    hasVideo={!!story.video_url}
-                  />
-                ))}
+            </div>
+            
+            <div className="flex items-center gap-4">
+            {/* Validation Status */}
+            {validationResult && (
+              <div className="flex items-center gap-2">
+                {validationResult.errors.length > 0 && (
+                  <span className="text-red-600 text-xs font-medium">
+                    🚨 {validationResult.errors.length} rule{validationResult.errors.length !== 1 ? 's' : ''} enforced
+                  </span>
+                )}
+                {validationResult.warnings.length > 0 && (
+                  <span className="text-yellow-600 text-xs font-medium">
+                    ⚠️ {validationResult.warnings.length} warning{validationResult.warnings.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {validationResult.isValid && (
+                  <span className="text-green-600 text-xs font-medium">
+                    ✅ Rules compliant
+                  </span>
+                )}
               </div>
-            </motion.div>
+            )}
+            <div className="text-gray-500">
+              {articles.length} article{articles.length !== 1 ? 's' : ''} loaded
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <main className="flex-grow container mx-auto p-4 md:p-8">
+        {/* Breaking News Banner */}
+        {breakingNewsArticle && (
+          <section className="mb-6">
+            <Link to={`/article/${breakingNewsArticle.slug.current}`} className="block bg-red-600 text-white p-3 rounded-md hover:bg-opacity-90 transition-colors">
+              <span className="font-bold uppercase text-sm tracking-wider">Breaking News</span>
+              <span className="mx-2">•</span>
+              <span>{breakingNewsArticle.title}</span>
+            </Link>
+          </section>
+        )}
 
-            <motion.div className="mb-12" variants={itemVariants}>
-              <SectionHeader title="Featured Stories" icon={<Globe />} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {featuredStories?.slice(1).map((story) => (
-                  <ArticleCard 
-                    key={story.id}
-                    title={story.title}
-                    excerpt={story.content.substring(0, 100) + '...'}
-                    author={story.authors?.[0]?.name || 'N/A'}
-                    date={formatDistanceToNow(new Date(story.created_at)) + ' ago'}
-                    category={story.categories?.[0]?.name || 'N/A'}
-                    image={story.image_url || undefined}
-                    hasVideo={!!story.video_url}
-                  />
-                ))}
-              </div>
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <SectionHeader title="Latest Updates" icon={<Clock />} />
-                <div className="space-y-8">
-                  {latestStories?.map((story) => (
-                    <ArticleCard 
-                      key={story.id}
-                      title={story.title}
-                      excerpt={story.content.substring(0, 150) + '...'}
-                      author={story.authors?.[0]?.name || 'N/A'}
-                      date={formatDistanceToNow(new Date(story.created_at)) + ' ago'}
-                      category={story.categories?.[0]?.name || 'N/A'}
-                      image={story.image_url || undefined}
-                      hasVideo={!!story.video_url}
-                    />
-                  ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* Lead Story */}
+            {leadStory && (
+              <section className="homepage-section bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
+                <h1 className="font-serif text-4xl md:text-6xl font-bold text-deep-navy mb-4 leading-tight">{leadStory.title}</h1>
+                <div className="mb-4 text-xs uppercase text-slate-gray tracking-wider font-medium flex items-center gap-4">
+                  <span>By {leadStory.author?.name || 'Staff'}</span>
+                  <span className="text-gray-400">•</span>
+                  <span>{new Date(leadStory.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                  {leadStory.mediaType === 'video' && (
+                    <>
+                      <span className="text-gray-400">•</span>
+                      <span className="flex items-center gap-1.5"><Video size={14}/> Video Report</span>
+                    </>
+                  )}
                 </div>
-              </div>
+                <p className="text-lg text-slate-gray mb-4" dangerouslySetInnerHTML={{ __html: sanitizeText(leadStory.excerpt) }}></p>
+                <Link to={`/article/${leadStory.slug.current}`} className="block group mt-6">
+                  <div className="overflow-hidden rounded-lg shadow-lg">
+                    <img src={urlFor(leadStory.mainImage).width(1200).height(675).url()} alt={leadStory.title} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"/>
+                  </div>
+                </Link>
+              </section>
+            )}
 
-              <div>
-                <SectionHeader title="Trending Now" icon={<TrendingUp />} />
-                <div className="space-y-4">
-                  {trending.map((item, index) => (
-                    <div key={index} className="flex items-center text-sm">
-                      <span className="text-2xl font-bold text-newsprint-400 mr-4">{index + 1}</span>
-                      <div>
-                        <p className="font-semibold text-ink-800 dark:text-newsprint-200">{item.title}</p>
-                        <p className="text-newsprint-500 font-serif">{item.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-12">
-                  <SectionHeader title="Video & Photos" icon={<Camera />} />
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-ink-800 rounded-lg flex items-center justify-center text-newsprint-50">
-                      <Video size={48} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="aspect-square bg-ink-300 rounded"></div>
-                      <div className="aspect-square bg-ink-300 rounded"></div>
-                    </div>
+            {/* Featured Stories */}
+            {featuredArticles && featuredArticles.length > 0 && (
+              <section className="homepage-section bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="font-serif text-3xl font-bold text-deep-navy">Featured Stories</h2>
+                  <div className="w-8 h-8 rounded-full border-2 border-deep-navy flex items-center justify-center">
+                    <span className="text-deep-navy font-bold text-sm">→</span>
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {featuredArticles.map((article) => (
+                    <article key={article._id} className="bg-cream rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                      {/* Category Tag */}
+                      <div className="p-4 pb-0">
+                        <span className="inline-block bg-deep-navy text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded">
+                          {article.categories?.[0]?.title || 'FEATURES'}
+                        </span>
+                      </div>
+                      
+                      {/* Image */}
+                      <div className="p-4 pt-3">
+                        <div className="overflow-hidden rounded-lg mb-4">
+                          <Link to={`/article/${article.slug.current}`} className="block group">
+                            <img 
+                              src={urlFor(article.mainImage).width(600).height(400).url()} 
+                              alt={article.title} 
+                              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </Link>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="space-y-3">
+                          <h3 className="font-serif text-xl font-bold leading-tight text-deep-navy">
+                            <Link to={`/article/${article.slug.current}`} className="hover:text-muted-burgundy transition-colors">
+                              {article.title}
+                            </Link>
+                          </h3>
+                          
+                          <p className="text-slate-gray text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeText(article.excerpt) }}></p>
+                          
+                          {/* Author and Date */}
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <div className="flex items-center gap-2 text-xs text-slate-gray">
+                              <User size={12}/>
+                              <span className="font-medium">By {article.author?.name || 'Staff'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-gray">
+                              <Calendar size={12}/>
+                              <span>{new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Continue Reading Link */}
+                          <div className="pt-2">
+                            <Link 
+                              to={`/article/${article.slug.current}`} 
+                              className="inline-flex items-center gap-2 text-sm font-medium text-deep-navy hover:text-muted-burgundy transition-colors"
+                            >
+                              Continue Reading
+                              <span className="text-xs">→</span>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <aside className="lg:col-span-1 space-y-8">
+            {/* Trending Section */}
+            {trendingArticles && trendingArticles.length > 0 && (
+              <div className="mb-8 border-b border-gray-200 pb-8">
+                <h2 className="text-xl font-bold mb-4">Trending</h2>
+                {trendingArticles.map((article, index) => (
+                  <div key={article._id} className="flex items-start gap-3 border-b border-gray-200 pb-3 last:border-b-0">
+                    <span className="text-2xl font-bold text-slate-gray font-serif pt-1">{index + 1}</span>
+                    <div className='flex-grow'>
+                      <Link to={`/article/${article.slug.current}`} className="group">
+                        <h3 className="font-semibold group-hover:text-muted-burgundy transition-colors leading-tight">{article.title}</h3>
+                        <p className="text-xs text-slate-gray mt-1">{article.readCount ? `${(article.readCount / 1000).toFixed(1)}K reads` : 'Popular'}</p>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Latest Updates Section - Only shows articles tagged as isLatestUpdate */}
+            {latestUpdates && latestUpdates.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-4">Latest Updates</h2>
+                {latestUpdates.map((article) => (
+                  <div key={article._id} className="border-b border-gray-200 pb-3 last:border-b-0 mb-3">
+                    <Link to={`/article/${article.slug.current}`} className="group block">
+                      <h3 className="font-semibold group-hover:text-muted-burgundy transition-colors leading-tight">{article.title}</h3>
+                      <div className="text-xs text-slate-gray mt-1 flex items-center gap-2">
+                        <span>{formatDistanceToNow(new Date(article.publishedAt))} ago</span>
+                        <span className="text-gray-300">•</span>
+                        <span className="font-medium uppercase">{article.categories?.[0]?.title || 'News'}</span>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+        </div>
+
+        {/* Video Journal */}
+        {videoArticles && videoArticles.length > 0 && (
+          <section className="homepage-section mt-12 bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
+            <div className="border-b-2 border-gray-200 pb-2 mb-6">
+              <h2 className="font-serif text-sm font-bold text-deep-navy uppercase tracking-wider">Video Journal</h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <Link to={`/article/${videoArticles[0].slug.current}`} className="block group">
+                  <div className="relative overflow-hidden rounded-lg shadow-lg">
+                    <img src={urlFor(videoArticles[0].mainImage).width(1200).height(675).url()} alt={videoArticles[0].title} className="w-full h-auto object-cover"/>
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Video className="h-20 w-20 text-white/80 group-hover:scale-110 transition-transform duration-300"/>
+                    </div>
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold mt-4 group-hover:text-muted-burgundy transition-colors">{videoArticles[0].title}</h3>
+                  <p className="text-slate-gray text-sm" dangerouslySetInnerHTML={{ __html: sanitizeText(videoArticles[0].excerpt) }}></p>
+                </Link>
+              </div>
+              <div className="lg:col-span-1">
+                <h3 className="text-lg font-bold mb-3 font-serif">Latest Videos</h3>
+                <ul className="space-y-4">
+                  {videoArticles.slice(1).map((article) => (
+                    <li key={article._id}>
+                      <Link to={`/article/${article.slug.current}`} className="group flex items-center gap-4">
+                        <div className="relative flex-shrink-0 w-32 h-20 overflow-hidden rounded-md shadow-sm">
+                          <img src={urlFor(article.mainImage).width(200).height(120).url()} alt={article.title} className="w-full h-full object-cover"/>
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Video className="h-8 w-8 text-white/80"/>
+                          </div>
+                        </div>
+                        <h4 className="font-semibold text-sm leading-tight group-hover:text-muted-burgundy transition-colors">{article.title}</h4>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-          </>
+          </section>
         )}
-      </motion.main>
-
+      </main>
       <Footer />
     </div>
   );
