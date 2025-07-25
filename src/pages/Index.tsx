@@ -212,6 +212,11 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
+        {/* Breaking News Banner */}
+        {breakingNewsArticle && (
+          <section className="mb-6">
+            <Link to={`/article/${breakingNewsArticle.slug.current}`} className="block bg-red-600 text-white p-3 rounded-md hover:bg-opacity-90 transition-colors">
+              <span className="font-bold uppercase text-sm tracking-wider">Breaking News</span>
               <span className="mx-2">•</span>
               <span>{breakingNewsArticle.title}</span>
             </Link>
