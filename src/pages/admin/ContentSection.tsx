@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+// Supabase removed - using Sanity as backend
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,16 +25,9 @@ const fetchContentForSection = async (section: string) => {
   const config = sectionConfig[section];
   if (!config) throw new Error('Invalid content section');
 
-  let query = supabase.from(config.type).select('id, title, category:categories(name)');
-
-  if (config.type === 'articles') {
-    if (section === 'lead') query = query.eq('is_lead_story', true);
-    else if (section === 'featured') query = query.eq('is_featured', true);
-  }
-
-  query = query.order('created_at', { ascending: false });
-
-  const { data, error } = await query;
+  // TODO: Replace with Sanity query when needed
+  // Disabled Supabase - using Sanity as backend
+  const data = [], error = null;
   if (error) throw new Error(error.message);
 
   const formattedData = data?.map(item => ({
@@ -59,7 +52,8 @@ export default function ContentSection() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(config.type).delete().eq('id', id);
+      // TODO: Replace with Sanity delete when needed
+      const error = new Error('Delete disabled - using Sanity as backend');
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

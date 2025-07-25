@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+// Supabase removed - using Sanity as backend
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Link } from 'react-router-dom';
@@ -15,20 +15,9 @@ interface Article {
 }
 
 async function fetchArticles(): Promise<Article[]> {
-  const { data, error } = await supabase
-    .from('articles')
-    .select(`
-      id, 
-      title, 
-      published, 
-      created_at,
-      authors ( name ),
-      categories ( name )
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data || [];
+  // TODO: Replace with Sanity query when needed
+  // Disabled Supabase - using Sanity as backend
+  return [] as Article[];
 }
 
 export default function AdminArticles() {
@@ -41,8 +30,8 @@ export default function AdminArticles() {
 
   const deleteMutation = useMutation<void, Error, string>({ 
     mutationFn: async (articleId: string) => {
-      const { error } = await supabase.from('articles').delete().eq('id', articleId);
-      if (error) throw new Error(error.message);
+      // TODO: Replace with Sanity delete when needed
+      throw new Error('Delete functionality disabled - using Sanity as backend');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-articles'] });

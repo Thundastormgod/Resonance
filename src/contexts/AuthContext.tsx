@@ -1,6 +1,5 @@
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { supabase } from '@/lib/supabase';
 
 // Define the shape of the context value
 interface AuthContextValue {
@@ -23,18 +22,8 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const authState = useAuthStore(state => state);
 
   useEffect(() => {
-    // Initial check
+    // Initial check for mock authentication
     authState.checkAuth();
-
-    // Set up a listener for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      authState.checkAuth();
-    });
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []); // Run only once on mount
 
   return (

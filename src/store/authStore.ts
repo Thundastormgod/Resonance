@@ -1,6 +1,16 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
-import { Session, User } from '@supabase/supabase-js';
+
+// Simple types for mock authentication
+interface User {
+  id: string;
+  email: string;
+}
+
+interface Session {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
 
 interface AuthState {
   user: User | null;

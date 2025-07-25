@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+// Supabase removed - using Sanity as backend
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useEffect } from 'react';
@@ -48,7 +48,8 @@ export default function AdminArticleEdit() {
   const { data: article, isLoading: isLoadingArticle } = useQuery({
     queryKey: ['article', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('articles').select('*').eq('id', id).single();
+      // TODO: Replace with Sanity query when needed
+      const data = null, error = null; // Disabled Supabase
       if (error) throw new Error(error.message);
       return data;
     },
@@ -58,7 +59,8 @@ export default function AdminArticleEdit() {
   const { data: authors, isLoading: isLoadingAuthors } = useQuery<Author[], Error>({
     queryKey: ['authors'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('authors').select('id, name');
+      // TODO: Replace with Sanity query when needed
+      const data = [], error = null; // Disabled Supabase
       if (error) throw new Error(error.message);
       return data || [];
     }
@@ -67,7 +69,8 @@ export default function AdminArticleEdit() {
   const { data: categories, isLoading: isLoadingCategories } = useQuery<Category[], Error>({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('categories').select('id, name');
+      // TODO: Replace with Sanity query when needed
+      const data = [], error = null; // Disabled Supabase
       if (error) throw new Error(error.message);
       return data || [];
     }
@@ -95,9 +98,10 @@ export default function AdminArticleEdit() {
 
   const mutation = useMutation<void, Error, ArticleFormValues>({
     mutationFn: async (values: ArticleFormValues) => {
-      const { error } = isEdit
-        ? await supabase.from('articles').update(values).eq('id', id!)
-        : await supabase.from('articles').insert(values);
+      // TODO: Replace with Sanity mutations when needed
+      const error = isEdit 
+        ? new Error('Update disabled - using Sanity as backend')
+        : new Error('Insert disabled - using Sanity as backend');
 
       if (error) throw new Error(error.message);
     },

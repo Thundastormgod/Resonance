@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+// Supabase removed - using Sanity as backend
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,13 +19,10 @@ const sectionConfig = {
   latest: { title: 'Latest Updates', icon: <Zap />, query: (q: any) => q.order('created_at', { ascending: false }).limit(5) },
 };
 
-// Fetcher
+// Fetcher - Disabled (using Sanity as backend)
 const fetchArticlesForSection = async (section: keyof typeof sectionConfig) => {
-  let query = supabase.from('articles').select('id, title, created_at');
-  query = sectionConfig[section].query(query);
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data as Article[];
+  // TODO: Replace with Sanity query when needed
+  return [] as Article[];
 };
 
 // Article List Component
@@ -40,8 +37,8 @@ const ArticleListSection = ({ sectionKey }: { sectionKey: keyof typeof sectionCo
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('articles').delete().eq('id', id);
-      if (error) throw new Error(error.message);
+      // TODO: Replace with Sanity delete when needed
+      throw new Error('Delete functionality disabled - using Sanity as backend');
     },
     onSuccess: () => {
       toast.success('Article deleted!');
