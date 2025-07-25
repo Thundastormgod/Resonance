@@ -212,27 +212,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
       
-      {/* Real-time Status Indicator */}
-      <div className="bg-slate-100 border-b border-gray-200 px-4 py-2">
-        <div className="container mx-auto flex items-center justify-between text-sm">
-          <div className="flex items-center space-x-4">
-            {/* Real-time Status Indicator */}
-            <div className="flex items-center space-x-2">
-              <div className="text-sm font-medium">
-                {connectionStatus === 'live' && '🔴 Live Updates Active'}
-                {connectionStatus === 'polling' && '🟡 Polling Mode'}
 
-                {connectionStatus === 'offline' && '🔴 Offline'}
-              </div>
-              <div className="text-xs text-gray-500">
-                Last: {lastUpdated.toLocaleTimeString()}
-                {forceRefreshCount > 0 && (
-                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                    🚀 {forceRefreshCount} instant updates
-                  </span>
-                )}
-              </div>
-            </div>
             
             <div className="flex items-center gap-4">
             {/* Validation Status */}
