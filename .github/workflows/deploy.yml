@@ -105,10 +105,13 @@ jobs:
     - name: Build and push Docker images
       if: success()
       run: |
+        # Convert repository name to lowercase for Docker registry compatibility
+        REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        
         # Tag images
-        docker build -f Dockerfile.frontend -t ghcr.io/${{ github.repository }}/frontend:latest .
-        docker build -f Dockerfile.backend -t ghcr.io/${{ github.repository }}/backend:latest .
+        docker build -f Dockerfile.frontend -t ghcr.io/${REPO_LOWER}/frontend:latest .
+        docker build -f Dockerfile.backend -t ghcr.io/${REPO_LOWER}/backend:latest .
         
         # Push images
-        docker push ghcr.io/${{ github.repository }}/frontend:latest
-        docker push ghcr.io/${{ github.repository }}/backend:latest
+        docker push ghcr.io/${REPO_LOWER}/frontend:latest
+        docker push ghcr.io/${REPO_LOWER}/backend:latest

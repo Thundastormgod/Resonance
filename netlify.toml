@@ -3,20 +3,19 @@
   port = 5173
   targetPort = 5174
 
+# Traditional build command for Netlify (Docker not available in Netlify build environment)
 [build]
-  # Docker-based build for production
-  command = "./deploy.sh build && ./deploy.sh netlify"
-  publish = "netlify-deploy"
+  command = "npm run build"
+  publish = "dist"
   
 [build.environment]
   NODE_VERSION = "20"
-  DOCKER_BUILDKIT = "1"
   
-# Alternative build command for traditional deployment (without Docker)
-# Uncomment the following lines and comment the Docker build above if needed
+# Docker-based build for GitHub Actions CI/CD
+# The Docker pipeline runs in GitHub Actions and deploys via netlify-cli
 # [build]
-#   command = "npm run build"
-#   publish = "dist"
+#   command = "./deploy.sh build && ./deploy.sh netlify"
+#   publish = "netlify-deploy"
 
 [functions]
   directory = "netlify/functions"
