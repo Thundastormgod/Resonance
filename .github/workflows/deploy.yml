@@ -32,8 +32,29 @@ jobs:
     - name: Test Docker containers
       run: |
         docker compose up -d
-        sleep 30
-        curl -f http://localhost:3000 || exit 1
+        echo "Waiting for containers to initialize..."
+        sleep 45
+        
+        # Check container status
+        docker compose ps
+        
+        # Health check with retry logic
+        echo "Testing frontend health..."
+        for i in {1..10}; do
+          if curl -f --connect-timeout 10 --max-time 30 http://localhost:3000; then
+            echo "Frontend health check passed!"
+            break
+          else
+            echo "Attempt $i failed, retrying in 10 seconds..."
+            sleep 10
+          fi
+          if [ $i -eq 10 ]; then
+            echo "Frontend health check failed after 10 attempts"
+            docker compose logs
+            exit 1
+          fi
+        done
+        
         docker compose down
 
   deploy:
