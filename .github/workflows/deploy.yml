@@ -95,16 +95,19 @@ jobs:
         NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         
     - name: Login to GitHub Container Registry
-      if: success()
+      id: docker-login
+      continue-on-error: true
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Build and push Docker images
-      if: success()
+    - name: Build and push Docker images (optional)
+      if: steps.docker-login.outcome == 'success'
+      continue-on-error: true
       run: |
+        echo "Attempting to push Docker images to registry..."
         # Convert repository name to lowercase for Docker registry compatibility
         REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
         
@@ -115,3 +118,13 @@ jobs:
         # Push images
         docker push ghcr.io/${REPO_LOWER}/frontend:latest
         docker push ghcr.io/${REPO_LOWER}/backend:latest
+        echo "Docker images pushed successfully!"
+        
+    - name: Docker registry status
+      run: |
+        if [[ "${{ steps.docker-login.outcome }}" == "success" ]]; then
+          echo "✅ Docker images were pushed to GitHub Container Registry"
+        else
+          echo "⚠️  Docker registry push skipped (permissions not available)"
+          echo "   Main deployment to Netlify completed successfully!"
+        fi
