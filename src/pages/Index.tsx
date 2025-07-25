@@ -221,7 +221,7 @@ const Index = () => {
               <div className="text-sm font-medium">
                 {connectionStatus === 'live' && '🔴 Live Updates Active'}
                 {connectionStatus === 'polling' && '🟡 Polling Mode'}
-                {connectionStatus === 'connecting' && '🔵 Connecting...'}
+
                 {connectionStatus === 'offline' && '🔴 Offline'}
               </div>
               <div className="text-xs text-gray-500">
