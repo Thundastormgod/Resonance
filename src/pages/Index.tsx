@@ -217,11 +217,12 @@ const Index = () => {
           <section className="mb-6">
             <Link to={`/article/${breakingNewsArticle.slug.current}`} className="block bg-red-600 text-white p-3 rounded-md hover:bg-opacity-90 transition-colors">
               <span className="font-bold uppercase text-sm tracking-wider">Breaking News</span>
-              <span className="mx-2">•</span>
-              <span>{breakingNewsArticle.title}</span>
+               <span className="mx-2">•</span>
+               <span>{breakingNewsArticle.title}</span>
             </Link>
           </section>
         )}
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Main Content */}
