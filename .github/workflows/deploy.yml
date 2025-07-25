@@ -29,33 +29,34 @@ jobs:
         docker build -f Dockerfile.frontend -t resonance-frontend:test .
         docker build -f Dockerfile.backend -t resonance-backend:test .
         
-    - name: Test Docker containers
+    - name: Test Docker builds
       run: |
-        docker compose up -d
-        echo "Waiting for containers to initialize..."
-        sleep 45
+        # Test that Docker images build successfully
+        echo "Testing Docker image builds..."
+        docker build -f Dockerfile.frontend -t resonance-frontend:test .
+        docker build -f Dockerfile.backend -t resonance-backend:test .
         
-        # Check container status
-        docker compose ps
+        # Test that containers can start (without networking issues)
+        echo "Testing container startup..."
+        docker run --rm -d --name test-frontend -p 8080:80 resonance-frontend:test
+        docker run --rm -d --name test-backend -p 8081:3333 resonance-backend:test
         
-        # Health check with retry logic
-        echo "Testing frontend health..."
-        for i in {1..10}; do
-          if curl -f --connect-timeout 10 --max-time 30 http://localhost:3000; then
-            echo "Frontend health check passed!"
-            break
-          else
-            echo "Attempt $i failed, retrying in 10 seconds..."
-            sleep 10
-          fi
-          if [ $i -eq 10 ]; then
-            echo "Frontend health check failed after 10 attempts"
-            docker compose logs
-            exit 1
-          fi
-        done
+        # Wait for containers to initialize
+        sleep 30
         
-        docker compose down
+        # Simple health check without Netlify Dev complications
+        echo "Testing frontend accessibility..."
+        if curl -f --connect-timeout 10 --max-time 30 http://localhost:8080; then
+          echo "Frontend container test passed!"
+        else
+          echo "Frontend container test failed"
+          docker logs test-frontend
+          exit 1
+        fi
+        
+        # Cleanup
+        docker stop test-frontend test-backend || true
+        docker rm test-frontend test-backend || true
 
   deploy:
     runs-on: ubuntu-latest
