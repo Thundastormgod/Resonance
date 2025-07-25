@@ -211,44 +211,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
-      
-
-            
-            <div className="flex items-center gap-4">
-            {/* Validation Status */}
-            {validationResult && (
-              <div className="flex items-center gap-2">
-                {validationResult.errors.length > 0 && (
-                  <span className="text-red-600 text-xs font-medium">
-                    🚨 {validationResult.errors.length} rule{validationResult.errors.length !== 1 ? 's' : ''} enforced
-                  </span>
-                )}
-                {validationResult.warnings.length > 0 && (
-                  <span className="text-yellow-600 text-xs font-medium">
-                    ⚠️ {validationResult.warnings.length} warning{validationResult.warnings.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-                {validationResult.isValid && (
-                  <span className="text-green-600 text-xs font-medium">
-                    ✅ Rules compliant
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="text-gray-500">
-              {articles.length} article{articles.length !== 1 ? 's' : ''} loaded
-            </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       <main className="flex-grow container mx-auto p-4 md:p-8">
-        {/* Breaking News Banner */}
-        {breakingNewsArticle && (
-          <section className="mb-6">
-            <Link to={`/article/${breakingNewsArticle.slug.current}`} className="block bg-red-600 text-white p-3 rounded-md hover:bg-opacity-90 transition-colors">
-              <span className="font-bold uppercase text-sm tracking-wider">Breaking News</span>
               <span className="mx-2">•</span>
               <span>{breakingNewsArticle.title}</span>
             </Link>
