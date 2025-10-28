@@ -31,7 +31,7 @@ const categoryConfig: Record<string, { title: string; description: string; icon?
   'world': { title: 'World', description: 'International news and global perspectives' },
   'comment': { title: 'Comment', description: 'Opinion pieces and editorial commentary' },
   'life-style': { title: 'Life & Style', description: 'Culture, fashion, food, and lifestyle trends' },
-  'business': { title: 'Business & Money', description: 'Financial news, markets, and economic analysis' },
+  'business-money': { title: 'Business & Money', description: 'Financial news, markets, and economic analysis' },
   'sport': { title: 'Sport', description: 'Sports news, scores, and athlete profiles' },
   'culture': { title: 'Culture', description: 'Arts, entertainment, books, and cultural commentary' },
   'travel': { title: 'Travel', description: 'Destinations, travel guides, and adventure stories' },
