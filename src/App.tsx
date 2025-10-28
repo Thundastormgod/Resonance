@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { SplashScreen } from '@/components/SplashScreen';
 
 import { Toaster } from '@/components/ui/toaster';
 
@@ -30,8 +31,31 @@ const PageLoader = () => (
 );
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+  useEffect(() => {
+    // Check if this is the first load in this session
+    const hasLoadedBefore = sessionStorage.getItem('app-loaded');
+    
+    if (hasLoadedBefore) {
+      // Skip splash screen on subsequent navigations within same session
+      setShowSplash(false);
+      setIsFirstLoad(false);
+    } else {
+      // Mark as loaded for this session
+      sessionStorage.setItem('app-loaded', 'true');
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
   return (
     <ThemeProvider>
+      {isFirstLoad && showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      {!showSplash && (
         <Router>
           <PWAInstallPrompt />
           <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -72,7 +96,8 @@ function App() {
             <Toaster />
           </div>
         </Router>
-      </ThemeProvider>
+      )}
+    </ThemeProvider>
   );
 }
 
