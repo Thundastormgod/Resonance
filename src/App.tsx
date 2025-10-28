@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { SplashScreen } from '@/components/SplashScreen';
+import { NewspaperFlipTransition, FadeScaleTransition } from '@/components/PageTransitions';
 
 import { Toaster } from '@/components/ui/toaster';
 
@@ -29,6 +30,64 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
   </div>
 );
+
+// Animated routes wrapper with smart transition selection
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
+  // Determine transition type based on route
+  const isArticle = location.pathname.includes('/article/');
+  const isAdmin = location.pathname.startsWith('/admin');
+  
+  // No animation for admin routes
+  if (isAdmin) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes location={location}>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route 
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="articles" element={<AdminArticles />} />
+            <Route path="edit/articles/new" element={<AdminArticleEdit />} />
+            <Route path="edit/articles/:id" element={<AdminArticleEdit />} />
+            <Route path="content/:sectionType" element={<ContentSection />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    );
+  }
+  
+  // Use newspaper flip for articles, fade scale for everything else
+  const TransitionComponent = isArticle ? NewspaperFlipTransition : FadeScaleTransition;
+  
+  return (
+    <TransitionComponent>
+      <Suspense fallback={<PageLoader />}>
+        <Routes location={location}>
+          {/* Public Routes */}
+          <Route path="/" element={<Index />} />
+          <Route path="/article/:slug" element={<Article />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+
+          {/* Category Routes - Dynamic route that matches all category slugs */}
+          <Route path="/:category" element={<Category />} />
+
+          {/* Not Found Route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </TransitionComponent>
+  );
+};
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -59,40 +118,7 @@ function App() {
         <Router>
           <PWAInstallPrompt />
           <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/article/:slug" element={<Article />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-
-                {/* Category Routes - Dynamic route that matches all category slugs */}
-                <Route path="/:category" element={<Category />} />
-
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                {/* Admin Routes: All routes under /admin are protected and use AdminLayout */}
-                <Route 
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="articles" element={<AdminArticles />} />
-                  <Route path="edit/articles/new" element={<AdminArticleEdit />} />
-                  <Route path="edit/articles/:id" element={<AdminArticleEdit />} />
-                  <Route path="content/:sectionType" element={<ContentSection />} />
-                </Route>
-
-                {/* Not Found Route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <AnimatedRoutes />
             <Toaster />
           </div>
         </Router>

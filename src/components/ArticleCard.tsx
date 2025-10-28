@@ -1,6 +1,7 @@
 
 import { Clock, User, Video, Camera } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ArticleCardFlip } from './PageTransitions';
 
 interface ArticleCardProps {
   title: string;
@@ -36,18 +37,19 @@ const ArticleCard = ({
   };
 
   return (
-    <motion.article 
-      className={`border-b border-ink-300 pb-6 mb-6 ${getColumnClass()}`}
-      whileHover={{ scale: 1.01 }}
-      transition={{ duration: 0.2 }}
-    >
-      {/* Category kicker */}
-      <motion.div 
-        className="mb-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+    <ArticleCardFlip>
+      <motion.article 
+        className={`border-b border-ink-300 pb-6 mb-6 ${getColumnClass()}`}
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
       >
+        {/* Category kicker */}
+        <motion.div 
+          className="mb-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
         <span className="inline-block bg-ink-800 text-newsprint-50 px-2 py-1 text-xs font-sans uppercase tracking-wide">
           {category}
         </span>
@@ -156,6 +158,7 @@ const ArticleCard = ({
         </motion.a>
       </motion.div>
     </motion.article>
+    </ArticleCardFlip>
   );
 };
 
