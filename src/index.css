@@ -26,6 +26,27 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: 220 30% 8%;       /* dark navy */
+    --foreground: 40 100% 95%;      /* light cream */
+    --card: 220 30% 12%;            /* slightly lighter dark navy */
+    --card-foreground: 40 100% 90%; /* cream */
+    --popover: 220 30% 12%;         /* slightly lighter dark navy */
+    --popover-foreground: 40 100% 90%; /* cream */
+    --primary: 45 76% 60%;          /* brighter warm-gold for dark mode */
+    --primary-foreground: 220 30% 8%; /* dark navy */
+    --secondary: 215 15% 25%;       /* darker slate-gray */
+    --secondary-foreground: 40 100% 95%; /* light cream */
+    --muted: 220 20% 20%;           /* dark muted */
+    --muted-foreground: 40 80% 80%; /* muted cream */
+    --accent: 0 30% 60%;            /* brighter muted-burgundy */
+    --accent-foreground: 40 100% 95%; /* light cream */
+    --destructive: 0 84.2% 65%;     /* slightly brighter red */
+    --destructive-foreground: 40 100% 95%; /* light cream */
+    --border: 220 20% 25%;          /* dark border */
+    --input: 220 20% 25%;           /* dark input */
+    --ring: 45 76% 60%;             /* brighter warm-gold */
+  }
 }
 
 @layer base {

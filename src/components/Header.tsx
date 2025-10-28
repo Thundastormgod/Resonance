@@ -1,12 +1,14 @@
 
-import { Calendar, Search, Menu, Globe } from 'lucide-react';
+import { Calendar, Search, Menu, Globe, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from './ThemeProvider';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   
   const currentDate = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -23,7 +25,7 @@ const Header = () => {
     { name: 'World', href: '/world' },
     { name: 'Comment', href: '/comment' },
     { name: 'Life & Style', href: '/life-style' },
-    { name: 'Business & Money', href: '/business' },
+    { name: 'Business & Money', href: '/business-money' },
     { name: 'Sport', href: '/sport' },
     { name: 'Culture', href: '/culture' },
     { name: 'Travel', href: '/travel' }
@@ -36,11 +38,9 @@ const Header = () => {
   ];
 
   const topicsNavigation = [
-    'News & Politics',
-    'Film & Television', 
-    'Sports',
-    'Pop Culture',
-    'Events'
+    { name: 'News & Politics', href: '/news-politics' },
+    { name: 'Film & Television', href: '/film-television' },
+    { name: 'Sports', href: '/sports' }
   ];
 
   const specialSections = [
@@ -54,7 +54,7 @@ const Header = () => {
     visible: { 
       opacity: 1, 
       height: 'auto',
-      transition: { duration: 0.3, ease: "easeOut" }
+      transition: { duration: 0.3 }
     }
   };
 
@@ -90,16 +90,29 @@ const Header = () => {
               <span>Digital Edition</span>
             </div>
             
-
+            {/* Theme toggle */}
+            <motion.button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors"
+              whileHover={{ scale: 1.1, rotate: 15 }}
+              whileTap={{ scale: 0.95 }}
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? (
+                <Moon size={16} className="text-ink-600 dark:text-ink-400" />
+              ) : (
+                <Sun size={16} className="text-ink-600 dark:text-ink-400" />
+              )}
+            </motion.button>
             
             {/* Search toggle */}
             <motion.button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 rounded-full hover:bg-ink-100 transition-colors"
+              className="p-2 rounded-full hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors"
               whileHover={{ scale: 1.1, rotate: 15 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Search size={16} />
+              <Search size={16} className="text-ink-600 dark:text-ink-400" />
             </motion.button>
           </div>
         </div>
@@ -177,9 +190,8 @@ const Header = () => {
               transition={{ duration: 0.5, delay: 0.3 }}
             >
               {mainNavigation.map((item, index) => (
-                <motion.a 
+                <motion.div 
                   key={item.name}
-                  href={item.href}
                   className={`hover:text-newsprint-300 transition-colors font-serif relative ${
                     item.featured ? 'font-bold text-newsprint-200' : ''
                   }`}
@@ -189,14 +201,16 @@ const Header = () => {
                   animate={{ opacity: 1, y: 0 }}
                   style={{ transitionDelay: `${0.1 * index}s` }}
                 >
-                  {item.name}
+                  <Link to={item.href}>
+                    {item.name}
+                  </Link>
                   <motion.div
                     className="absolute bottom-0 left-0 w-full h-0.5 bg-newsprint-300"
                     initial={{ scaleX: 0 }}
                     whileHover={{ scaleX: 1 }}
                     transition={{ duration: 0.2 }}
                   />
-                </motion.a>
+                </motion.div>
               ))}
             </motion.div>
             
@@ -208,16 +222,17 @@ const Header = () => {
               transition={{ duration: 0.5, delay: 0.4 }}
             >
               {mediaNavigation.map((item, index) => (
-                <motion.a
+                <motion.div
                   key={item.name}
-                  href={item.href}
                   className="flex items-center gap-2 hover:text-newsprint-300 transition-colors text-sm"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <span>{item.icon}</span>
-                  {item.name}
-                </motion.a>
+                  <Link to={item.href} className="flex items-center gap-2">
+                    <span>{item.icon}</span>
+                    {item.name}
+                  </Link>
+                </motion.div>
               ))}
             </motion.div>
             
@@ -247,9 +262,8 @@ const Header = () => {
                     <h3 className="newspaper-kicker text-newsprint-400 mb-3">Main Sections</h3>
                     <div className="grid grid-cols-2 gap-2">
                       {mainNavigation.map((item, index) => (
-                        <motion.a 
+                        <motion.div 
                           key={item.name}
-                          href={item.href}
                           className="hover:text-newsprint-300 transition-colors font-serif py-2"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -257,8 +271,10 @@ const Header = () => {
                           whileHover={{ x: 5 }}
                           transition={{ duration: 0.2 }}
                         >
-                          {item.name}
-                        </motion.a>
+                          <Link to={item.href}>
+                            {item.name}
+                          </Link>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -268,9 +284,8 @@ const Header = () => {
                     <h3 className="newspaper-kicker text-newsprint-400 mb-3">Topics</h3>
                     <div className="grid grid-cols-2 gap-2">
                       {topicsNavigation.map((topic, index) => (
-                        <motion.a 
-                          key={topic}
-                          href={`/topic/${topic.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
+                        <motion.div 
+                          key={topic.name}
                           className="hover:text-newsprint-300 transition-colors font-serif py-1 text-sm"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -278,8 +293,10 @@ const Header = () => {
                           whileHover={{ x: 5 }}
                           transition={{ duration: 0.2 }}
                         >
-                          {topic}
-                        </motion.a>
+                          <Link to={topic.href}>
+                            {topic.name}
+                          </Link>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -296,30 +313,32 @@ const Header = () => {
           <div className="flex items-center justify-between text-sm">
             <div className="hidden md:flex items-center gap-6">
               <span className="newspaper-kicker text-newsprint-400">Topics:</span>
-              {topicsNavigation.slice(0, 3).map((topic, index) => (
-                <motion.a
-                  key={topic}
-                  href={`/topic/${topic.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
+              {topicsNavigation.map((topic, index) => (
+                <motion.div
+                  key={topic.name}
                   className="hover:text-newsprint-100 transition-colors"
                   whileHover={{ y: -1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {topic}
-                </motion.a>
+                  <Link to={topic.href}>
+                    {topic.name}
+                  </Link>
+                </motion.div>
               ))}
             </div>
             
             <div className="flex items-center gap-4">
               {specialSections.map((section, index) => (
-                <motion.a
+                <motion.div
                   key={section.name}
-                  href={section.href}
                   className="hover:text-newsprint-100 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {section.name}
-                </motion.a>
+                  <Link to={section.href}>
+                    {section.name}
+                  </Link>
+                </motion.div>
               ))}
             </div>
           </div>

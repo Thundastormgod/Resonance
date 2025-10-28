@@ -118,18 +118,18 @@ const ArticleCard = ({
 
       {/* Byline */}
       <motion.div 
-        className="flex items-center gap-4 text-sm text-ink-600"
+        className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-ink-600"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <div className="flex items-center gap-1">
-          <User size={14} />
-          <span className="font-serif">By {author}</span>
+          <User size={14} className="flex-shrink-0" />
+          <span className="font-serif truncate">By {author}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Clock size={14} />
-          <span className="font-serif">{date}</span>
+          <Clock size={14} className="flex-shrink-0" />
+          <span className="font-serif whitespace-nowrap">{date}</span>
         </div>
       </motion.div>
 

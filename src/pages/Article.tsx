@@ -8,6 +8,7 @@ import { SanityImageSource } from '@sanity/image-url/lib/types/types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Loader2, Calendar, User } from 'lucide-react';
+import { ArticlePageSkeleton } from '../components/SkeletonLoaders';
 
 // Types
 interface ArticleData {
@@ -85,11 +86,7 @@ const Article = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-off-white">
-        <Loader2 className="h-16 w-16 animate-spin text-warm-gold" />
-      </div>
-    );
+    return <ArticlePageSkeleton />;
   }
 
   if (error) {
@@ -107,23 +104,23 @@ const Article = () => {
         <article>
           {/* Article Header */}
           <header className="text-center pt-16 pb-12 bg-white">
-            <div className="container mx-auto max-w-4xl px-4">
+            <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-12">
               <div className="flex justify-center gap-2 mb-4">
                 {article.categories?.map(cat => (
                   <span key={cat.title} className="text-sm font-sans uppercase text-warm-gold tracking-wider">{cat.title}</span>
                 ))}
               </div>
               <h1 className="text-4xl md:text-6xl font-bold font-serif text-deep-navy mb-6">{article.title}</h1>
-              <div className="flex justify-center items-center gap-6 text-slate-gray font-sans">
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-slate-gray font-sans mb-6">
                 <div className="flex items-center gap-2">
                   {article.author.image ? (
-                    <img src={urlFor(article.author.image).width(40).height(40).url()} alt={article.author.name} className="w-10 h-10 rounded-full object-cover" />
-                  ) : <User className="w-6 h-6"/>}
-                  <span>{article.author.name}</span>
+                    <img src={urlFor(article.author.image).width(40).height(40).url()} alt={article.author.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  ) : <User className="w-6 h-6 flex-shrink-0"/>}
+                  <span className="whitespace-nowrap">{article.author.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  <time dateTime={article.publishedAt}>{new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+                  <Calendar className="w-5 h-5 flex-shrink-0" />
+                  <time dateTime={article.publishedAt} className="whitespace-nowrap">{new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
                 </div>
               </div>
             </div>
@@ -131,7 +128,7 @@ const Article = () => {
 
           {/* Main Image */}
           {article.mainImage && (
-            <div className="container mx-auto my-8 md:-my-16 relative z-10 px-4">
+            <div className="container mx-auto my-8 md:my-4 relative z-10 px-4">
                 <img src={urlFor(article.mainImage).width(1200).height(675).url()} alt={article.title} className="w-full h-auto object-cover rounded-lg shadow-2xl"/>
             </div>
           )}

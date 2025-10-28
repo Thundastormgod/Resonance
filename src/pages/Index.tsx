@@ -6,6 +6,7 @@ import { getSafeArticleSelections, ValidationResult } from '@/lib/articleValidat
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Loader2, Video, Clock, TrendingUp, User, Calendar } from 'lucide-react';
+import { ArticleCardSkeleton, LeadStorySkeleton, TrendingItemSkeleton, VideoArticleSkeleton } from '../components/SkeletonLoaders';
 import { SanityImageSource } from '@sanity/image-url/lib/types/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -63,6 +64,8 @@ const Index = () => {
   const pollingQueryRef = useRef<ReturnType<typeof createPollingQuery> | null>(null);
   const liveQueryRef = useRef<any>(null);
   const lastRefreshRef = useRef<number>(0);
+
+  console.log('🚀 Index component mounted, loading state:', loading);
 
   useEffect(() => {
     const fetchArticles = async (useForceRefresh = false) => {
@@ -174,8 +177,76 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="flex-grow flex justify-center items-center">
-        <Loader2 className="h-16 w-16 animate-spin text-warm-gold" />
+      <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
+        <Header />
+        <main className="flex-grow container mx-auto p-4 md:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+            {/* Main Content Skeleton */}
+            <div className="lg:col-span-2 space-y-12">
+              <LeadStorySkeleton />
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="w-8 h-8 bg-gray-200 animate-pulse rounded-full"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <ArticleCardSkeleton key={i} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Skeleton */}
+            <aside className="lg:col-span-1 space-y-8">
+              {/* Trending Section */}
+              <div className="mb-8 border-b border-gray-200 pb-8">
+                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded mb-4"></div>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TrendingItemSkeleton key={i} />
+                ))}
+              </div>
+
+              {/* Latest Updates */}
+              <div className="mb-8">
+                <div className="h-6 w-32 bg-gray-200 animate-pulse rounded mb-4"></div>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="border-b border-gray-200 pb-3 mb-3 last:border-b-0">
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
+                      <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+                      <div className="h-3 w-24 bg-gray-200 animate-pulse rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          </div>
+
+          {/* Video Journal Skeleton */}
+          <div className="mt-12 bg-white p-6 rounded-lg shadow-sm">
+            <div className="border-b-2 border-gray-200 pb-2 mb-6">
+              <div className="h-4 w-32 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <div className="h-64 w-full bg-gray-200 animate-pulse rounded-lg mb-4"></div>
+                <div className="h-8 w-4/5 bg-gray-200 animate-pulse rounded mb-2"></div>
+                <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
+              </div>
+              <div className="lg:col-span-1">
+                <div className="h-5 w-32 bg-gray-200 animate-pulse rounded mb-3"></div>
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <VideoArticleSkeleton key={i} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -208,6 +279,35 @@ const Index = () => {
   console.log('- Video Articles:', videoArticles.length);
   console.log('- Trending Articles:', trendingArticles.length);
 
+  // Show message if no articles are available
+  const hasNoContent = !breakingNewsArticle && !leadStory && featuredArticles.length === 0 && latestUpdates.length === 0 && videoArticles.length === 0 && trendingArticles.length === 0;
+
+  if (hasNoContent) {
+    return (
+      <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
+        <Header />
+        <main className="flex-grow container mx-auto p-4 md:p-8 flex items-center justify-center">
+          <div className="text-center max-w-2xl">
+            <h1 className="text-4xl font-serif font-bold text-deep-navy mb-4">Welcome to The Resonance</h1>
+            <p className="text-lg text-slate-gray mb-6">
+              We're preparing exciting content for you. Please check back soon or add articles through the Sanity Studio.
+            </p>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-3">Getting Started</h2>
+              <ul className="text-left space-y-2 text-slate-gray">
+                <li>• Sanity Studio is running at <a href="http://localhost:3333" className="text-warm-gold hover:underline">localhost:3333</a></li>
+                <li>• Create articles and tag them as "Lead Story", "Featured", or "Latest Update"</li>
+                <li>• Articles with high read counts will appear in Trending</li>
+                <li>• Articles with video type will appear in Video Journal</li>
+              </ul>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
@@ -231,13 +331,13 @@ const Index = () => {
             {leadStory && (
               <section className="homepage-section bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <h1 className="font-serif text-4xl md:text-6xl font-bold text-deep-navy mb-4 leading-tight">{leadStory.title}</h1>
-                <div className="mb-4 text-xs uppercase text-slate-gray tracking-wider font-medium flex items-center gap-4">
+                <div className="mb-4 text-xs uppercase text-slate-gray tracking-wider font-medium flex flex-wrap items-center gap-2 sm:gap-4">
                   <span>By {leadStory.author?.name || 'Staff'}</span>
-                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-400 hidden sm:inline">•</span>
                   <span>{new Date(leadStory.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                   {leadStory.mediaType === 'video' && (
                     <>
-                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-400 hidden sm:inline">•</span>
                       <span className="flex items-center gap-1.5"><Video size={14}/> Video Report</span>
                     </>
                   )}
@@ -293,14 +393,14 @@ const Index = () => {
                           <p className="text-slate-gray text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeText(article.excerpt) }}></p>
                           
                           {/* Author and Date */}
-                          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-3 border-t border-gray-200 gap-2">
                             <div className="flex items-center gap-2 text-xs text-slate-gray">
-                              <User size={12}/>
-                              <span className="font-medium">By {article.author?.name || 'Staff'}</span>
+                              <User size={12} className="flex-shrink-0"/>
+                              <span className="font-medium truncate">By {article.author?.name || 'Staff'}</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-slate-gray">
-                              <Calendar size={12}/>
-                              <span>{new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                              <Calendar size={12} className="flex-shrink-0"/>
+                              <span className="whitespace-nowrap">{new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                             </div>
                           </div>
                           
@@ -388,14 +488,21 @@ const Index = () => {
                 <ul className="space-y-4">
                   {videoArticles.slice(1).map((article) => (
                     <li key={article._id}>
-                      <Link to={`/article/${article.slug.current}`} className="group flex items-center gap-4">
-                        <div className="relative flex-shrink-0 w-32 h-20 overflow-hidden rounded-md shadow-sm">
+                      <Link to={`/article/${article.slug.current}`} className="group flex items-start gap-3">
+                        <div className="relative flex-shrink-0 w-24 h-16 overflow-hidden rounded-md shadow-sm">
                           <img src={urlFor(article.mainImage).width(200).height(120).url()} alt={article.title} className="w-full h-full object-cover"/>
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <Video className="h-8 w-8 text-white/80"/>
+                            <Video className="h-6 w-6 text-white/80"/>
                           </div>
                         </div>
-                        <h4 className="font-semibold text-sm leading-tight group-hover:text-muted-burgundy transition-colors">{article.title}</h4>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm leading-tight group-hover:text-muted-burgundy transition-colors line-clamp-2">{article.title}</h4>
+                          <div className="text-xs text-slate-gray mt-1 flex items-center gap-2">
+                            <span className="font-medium">By {article.author?.name || 'Staff'}</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{formatDistanceToNow(new Date(article.publishedAt))} ago</span>
+                          </div>
+                        </div>
                       </Link>
                     </li>
                   ))}
