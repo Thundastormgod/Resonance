@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'placeholder.svg'],
+      includeAssets: ['favicon.ico', 'robots.txt', 'resonance-logo.svg'],
       manifest: {
         name: 'Resonance News',
         short_name: 'Resonance',
@@ -61,13 +61,13 @@ export default defineConfig(({ mode }) => ({
         orientation: 'portrait',
         icons: [
           {
-            src: '/placeholder.svg',
+            src: '/resonance-logo.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/placeholder.svg',
+            src: '/resonance-logo.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable'
