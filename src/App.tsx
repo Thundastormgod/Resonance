@@ -30,24 +30,8 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
 
-              {/* Category Routes */}
-              <Route path="/uk" element={<Category />} />
-              <Route path="/world" element={<Category />} />
-              <Route path="/comment" element={<Category />} />
-              <Route path="/life-style" element={<Category />} />
-              <Route path="/business-money" element={<Category />} />
-              <Route path="/sport" element={<Category />} />
-              <Route path="/culture" element={<Category />} />
-              <Route path="/travel" element={<Category />} />
-              <Route path="/videos" element={<Category />} />
-              <Route path="/podcasts" element={<Category />} />
-              <Route path="/music" element={<Category />} />
-              <Route path="/news-politics" element={<Category />} />
-              <Route path="/film-television" element={<Category />} />
-              <Route path="/sports" element={<Category />} />
-              <Route path="/puzzles" element={<Category />} />
-              <Route path="/magazines" element={<Category />} />
-              <Route path="/trending" element={<Category />} />
+              {/* Category Routes - Dynamic route that matches all category slugs */}
+              <Route path="/:category" element={<Category />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
