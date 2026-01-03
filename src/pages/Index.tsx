@@ -290,17 +290,8 @@ const Index = () => {
           <div className="text-center max-w-2xl">
             <h1 className="text-4xl font-serif font-bold text-deep-navy mb-4">Welcome to The Resonance</h1>
             <p className="text-lg text-slate-gray mb-6">
-              We're preparing exciting content for you. Please check back soon or add articles through the Sanity Studio.
+              We're preparing exciting content for you. Please check back soon.
             </p>
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-3">Getting Started</h2>
-              <ul className="text-left space-y-2 text-slate-gray">
-                <li>• Sanity Studio is running at <a href="http://localhost:3333" className="text-warm-gold hover:underline">localhost:3333</a></li>
-                <li>• Create articles and tag them as "Lead Story", "Featured", or "Latest Update"</li>
-                <li>• Articles with high read counts will appear in Trending</li>
-                <li>• Articles with video type will appear in Video Journal</li>
-              </ul>
-            </div>
           </div>
         </main>
         <Footer />

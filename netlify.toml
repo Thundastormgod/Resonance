@@ -20,20 +20,66 @@
 [functions]
   directory = "netlify/functions"
 
+# Keep local admin routes (AI generator, etc.) - must come BEFORE the Sanity redirect
 [[redirects]]
-  from = "/admin/*"
-  to = "https://tvi7xjbr.sanity.studio/*"
-  status = 301
+  from = "/admin/ai-generator"
+  to = "/index.html"
+  status = 200
 
 [[redirects]]
-  from = "/admin"
-  to = "https://tvi7xjbr.sanity.studio"
-  status = 301
+  from = "/admin/ai-generator/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/dashboard"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/articles"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/articles/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/edit/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/content/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/login"
+  to = "/index.html"
+  status = 200
+
+# Sanity Studio redirect (external)
+# Comment out if you want to use local admin
+# [[redirects]]
+#   from = "/admin/*"
+#   to = "https://tvi7xjbr.sanity.studio/*"
+#   status = 301
 
 # [[redirects]]
-#   from = "/*"
-#   to = "/index.html"
-#   status = 200
+#   from = "/admin"
+#   to = "https://tvi7xjbr.sanity.studio"
+#   status = 301
+
+# SPA fallback - must be last
+# Only apply in production builds - dev server handles this differently
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
 
 # Security headers for all routes
 [[headers]]

@@ -10,7 +10,13 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 5174,
     strictPort: true,
-
+    // Proxy Netlify functions to the Netlify Dev server during development
+    proxy: {
+      '/.netlify/functions': {
+        target: 'http://localhost:5173',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     rollupOptions: {

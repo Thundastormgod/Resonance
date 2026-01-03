@@ -24,6 +24,9 @@ const ContentSection = lazy(() => import('./pages/admin/ContentSection'));
 const AdminLogin = lazy(() => import('@/pages/admin/Login'));
 const ProtectedRoute = lazy(() => import('@/components/admin/ProtectedRoute'));
 
+// AI News Generator - lazy loaded
+const AINewsGenerator = lazy(() => import('@/features/ai-news-generator/components/AINewsGenerator'));
+
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -59,6 +62,7 @@ const AnimatedRoutes = () => {
             <Route path="edit/articles/new" element={<AdminArticleEdit />} />
             <Route path="edit/articles/:id" element={<AdminArticleEdit />} />
             <Route path="content/:sectionType" element={<ContentSection />} />
+            <Route path="ai-generator" element={<AINewsGenerator />} />
           </Route>
         </Routes>
       </Suspense>
