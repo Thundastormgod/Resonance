@@ -6,7 +6,16 @@
 // ============================================================
 
 // Basic source types for API calls
-export type DataSourceType = 'google-news' | 'rss' | 'newsapi' | 'guardian' | 'bbc' | 'mediastack';
+export type DataSourceType = 
+  | 'google-news' 
+  | 'rss' 
+  | 'newsapi' 
+  | 'guardian' 
+  | 'bbc' 
+  | 'mediastack'
+  | 'reuters'    // Added: Wire service
+  | 'ap'         // Added: Associated Press wire service
+  | 'nytimes';   // Added: New York Times API
 
 // Premium source categorization
 export type SourceTier = 'free' | 'freemium' | 'premium' | 'enterprise';
@@ -308,32 +317,84 @@ export interface ArticleGenerationResponse {
 }
 
 // ============================================================
-// FACT-CHECKING TYPES
+// FACT-CHECKING TYPES (Enhanced with atomic verification)
 // ============================================================
 
-export type FactCheckStatus = 'verified' | 'unverified' | 'disputed' | 'false';
+export type FactCheckStatus = 'verified' | 'partially-verified' | 'unverified' | 'disputed' | 'false' | 'needs-context';
+
+export interface VerificationSource {
+  type: 'primary-source' | 'news-wire' | 'academic' | 'fact-checker' | 'official-records' | 'expert-source' | 'provided-source';
+  name: string;
+  url?: string;
+  reliability: number;
+  quote?: string;
+}
 
 export interface FactCheckClaim {
   id: string;
+  claimId?: string;
   claim: string;
-  location: string; // Where in the article
+  originalText?: string;
+  location: string;
   status: FactCheckStatus;
-  confidence: number; // 0-100
+  confidence: number;
   explanation: string;
   sources: string[];
+  verificationSources?: VerificationSource[];
+  crossReferenceCount?: number;
+  severity?: 'critical' | 'major' | 'minor' | 'informational';
   suggestedCorrection?: string;
+  improvementAction?: string;
 }
 
 export interface FactCheckResult {
   articleId: string;
-  overallScore: number; // 0-100
+  overallScore: number;
+  overallStatus?: 'excellent' | 'good' | 'needs-work' | 'poor' | 'unreliable';
   claims: FactCheckClaim[];
   totalClaimsChecked: number;
   verifiedCount: number;
+  partiallyVerifiedCount?: number;
   disputedCount: number;
   falseCount: number;
   unverifiedCount: number;
-  recommendations: string[];
+  needsContextCount?: number;
+  categoryBreakdown?: {
+    category: string;
+    total: number;
+    verified: number;
+    score: number;
+  }[];
+  criticalIssues?: {
+    claim: string;
+    issue: string;
+    requiredAction: string;
+    impactOnScore: number;
+  }[];
+  recommendations: string[] | {
+    priority: 'high' | 'medium' | 'low';
+    action: string;
+    expectedScoreIncrease: number;
+    affectedClaims: string[];
+  }[];
+  scoreBreakdown?: {
+    verificationAccuracy: number;
+    sourceDiversity: number;
+    claimCoverage: number;
+    criticalClaimsScore: number;
+  };
+  pathTo88?: {
+    currentScore: number;
+    targetScore: number;
+    gap: number;
+    requiredActions: {
+      action: string;
+      scoreImpact: number;
+      difficulty: 'easy' | 'moderate' | 'complex';
+    }[];
+    achievable: boolean;
+    estimatedEffort: string;
+  };
   model: OpenRouterModel;
   checkedAt: string;
   tokensUsed: number;
@@ -345,19 +406,31 @@ export interface FactCheckRequest {
 }
 
 // ============================================================
-// BIAS DETECTION TYPES
+// BIAS DETECTION TYPES (Enhanced with granular analysis)
 // ============================================================
 
 export type BiasType =
   | 'political'
+  | 'political-left'
+  | 'political-right'
   | 'emotional'
+  | 'emotional-appeal'
   | 'corporate'
+  | 'corporate-interest'
   | 'sensational'
+  | 'sensationalism'
   | 'framing'
+  | 'framing-bias'
   | 'selection'
-  | 'omission';
+  | 'selection-bias'
+  | 'omission'
+  | 'omission-bias'
+  | 'loaded-language'
+  | 'confirmation-bias'
+  | 'anchoring-bias'
+  | 'false-balance';
 
-export type BiasLevel = 'none' | 'low' | 'moderate' | 'high' | 'severe';
+export type BiasLevel = 'none' | 'minimal' | 'low' | 'moderate' | 'high' | 'severe';
 
 export interface BiasInstance {
   id: string;
@@ -367,20 +440,74 @@ export interface BiasInstance {
   location: string;
   explanation: string;
   suggestedRevision?: string;
+  impactOnObjectivity?: number;
+  difficulty?: 'easy' | 'moderate' | 'complex';
 }
 
 export interface BiasAnalysisResult {
   articleId: string;
   overallBiasLevel: BiasLevel;
-  overallScore: number; // 0-100 (100 = no bias)
+  overallScore: number;
   instances: BiasInstance[];
+  totalIssuesFound?: number;
+  biasTypeBreakdown?: {
+    type: BiasType;
+    count: number;
+    severity: BiasLevel;
+    examples: string[];
+  }[];
   politicalLeaning?: 'left' | 'center-left' | 'center' | 'center-right' | 'right';
+  politicalAnalysis?: {
+    leaning: 'far-left' | 'left' | 'center-left' | 'center' | 'center-right' | 'right' | 'far-right';
+    confidence: number;
+    indicators: string[];
+  };
   tonalAnalysis: {
     objectivity: number;
     emotionality: number;
     sensationalism: number;
+    balanceScore?: number;
+    professionalTone?: number;
   };
-  recommendations: string[];
+  sourceBalance?: {
+    totalSourcesMentioned: number;
+    perspectivesRepresented: number;
+    missingPerspectives: string[];
+    sourceCredibilityScore: number;
+  };
+  criticalIssues?: {
+    issue: string;
+    text: string;
+    requiredAction: string;
+    impactOnScore: number;
+  }[];
+  recommendations: string[] | {
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    action: string;
+    expectedScoreIncrease: number;
+    affectedText?: string[];
+    suggestedRewrites?: string[];
+  }[];
+  scoreBreakdown?: {
+    languageNeutrality: number;
+    perspectiveBalance: number;
+    factualPresentation: number;
+    emotionalRestraint: number;
+    sourceCredibility: number;
+  };
+  pathTo88?: {
+    currentScore: number;
+    targetScore: number;
+    gap: number;
+    requiredActions: {
+      action: string;
+      scoreImpact: number;
+      difficulty: 'easy' | 'moderate' | 'complex';
+      specificEdits?: string[];
+    }[];
+    achievable: boolean;
+    estimatedEffort: string;
+  };
   model: OpenRouterModel;
   analyzedAt: string;
   tokensUsed: number;
@@ -403,6 +530,7 @@ export type WorkflowStage =
   | 'sample-selection'
   | 'fact-checking'
   | 'bias-checking'
+  | 'editing'           // NEW: Article editing stage
   | 'final-review'
   | 'publishing'
   | 'complete';

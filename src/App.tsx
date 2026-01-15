@@ -23,6 +23,7 @@ const AdminArticleEdit = lazy(() => import('./pages/admin/ArticleEdit'));
 const ContentSection = lazy(() => import('./pages/admin/ContentSection'));
 const AdminLogin = lazy(() => import('@/pages/admin/Login'));
 const ProtectedRoute = lazy(() => import('@/components/admin/ProtectedRoute'));
+const SanityStudioPage = lazy(() => import('./pages/admin/Studio'));
 
 // AI News Generator - lazy loaded
 const AINewsGenerator = lazy(() => import('@/features/ai-news-generator/components/AINewsGenerator'));
@@ -41,6 +42,19 @@ const AnimatedRoutes = () => {
   // Determine transition type based on route
   const isArticle = location.pathname.includes('/article/');
   const isAdmin = location.pathname.startsWith('/admin');
+  const isStudio = location.pathname.startsWith('/studio');
+  
+  // Sanity Studio route (full screen, no layout)
+  if (isStudio) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes location={location}>
+          <Route path="/studio" element={<SanityStudioPage />} />
+          <Route path="/studio/*" element={<SanityStudioPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
   
   // No animation for admin routes
   if (isAdmin) {
@@ -62,6 +76,7 @@ const AnimatedRoutes = () => {
             <Route path="edit/articles/new" element={<AdminArticleEdit />} />
             <Route path="edit/articles/:id" element={<AdminArticleEdit />} />
             <Route path="content/:sectionType" element={<ContentSection />} />
+            {/* AI Generator - admin already verified by parent ProtectedRoute */}
             <Route path="ai-generator" element={<AINewsGenerator />} />
           </Route>
         </Routes>

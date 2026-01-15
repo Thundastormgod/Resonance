@@ -1,7 +1,7 @@
 [dev]
-  command = "vite"
-  port = 5173
-  targetPort = 5174
+  command = "vite --port 5173"
+  targetPort = 5173
+  autoLaunch = false
 
 # Traditional build command for Netlify (Docker not available in Netlify build environment)
 [build]
@@ -19,6 +19,22 @@
 
 [functions]
   directory = "netlify/functions"
+
+# Increase timeout for AI generation functions (default is 10s, max is 26s for free tier)
+[functions."ai-generate"]
+  timeout = 60
+
+[functions."review-article"]
+  timeout = 60
+
+[functions."fact-check"]
+  timeout = 60
+
+[functions."bias-check"]
+  timeout = 60
+
+[functions."regenerate"]
+  timeout = 60
 
 # Keep local admin routes (AI generator, etc.) - must come BEFORE the Sanity redirect
 [[redirects]]
@@ -58,6 +74,17 @@
 
 [[redirects]]
   from = "/admin/login"
+  to = "/index.html"
+  status = 200
+
+# Sanity Studio route (embedded in React app)
+[[redirects]]
+  from = "/studio"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/studio/*"
   to = "/index.html"
   status = 200
 

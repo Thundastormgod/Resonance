@@ -1,5 +1,5 @@
 // Netlify Function: Read Story Content
-// Extracts full article content from URLs
+// Extracts full article content from URLs with strict validation
 
 interface HandlerEvent {
   httpMethod: string;
@@ -16,6 +16,26 @@ interface Headline {
   publishedAt?: string;
 }
 
+// Validation result for content quality
+interface ContentValidation {
+  isValid: boolean;
+  quality: 'high' | 'medium' | 'low' | 'unusable';
+  score: number; // 0-100
+  issues: string[];
+  cleanedContent: string;
+  wordCount: number;
+}
+
+// Quality thresholds
+const QUALITY_THRESHOLDS = {
+  MIN_WORD_COUNT: 50,          // Minimum words for usable content
+  MIN_SENTENCE_COUNT: 3,       // Minimum sentences
+  MAX_HTML_ARTIFACT_RATIO: 0.1, // Max 10% HTML artifacts
+  MIN_AVG_WORD_LENGTH: 3,      // Filter gibberish
+  MAX_AVG_WORD_LENGTH: 15,     // Filter encoded content
+  MIN_ALPHANUMERIC_RATIO: 0.7, // At least 70% alphanumeric
+};
+
 interface StoryContent {
   headlineId: string;
   url: string;
@@ -31,6 +51,10 @@ interface StoryContent {
   error?: string;
   keywords?: string[];
   category?: string;
+  // New validation fields
+  contentQuality: 'high' | 'medium' | 'low' | 'unusable';
+  qualityScore: number;
+  validationIssues: string[];
 }
 
 // Collated story group - combines similar stories
@@ -45,6 +69,9 @@ interface CollatedStoryGroup {
   sources: string[];
   primaryStory: StoryContent;
   similarity: number; // 0-1 score of how similar the stories are
+  // New quality fields
+  averageQualityScore: number;
+  hasHighQualitySource: boolean;
 }
 
 // Common stop words to ignore when extracting keywords
@@ -60,6 +87,195 @@ const STOP_WORDS = new Set([
   'after', 'before', 'about', 'over', 'into', 'through', 'during', 'including',
   'until', 'against', 'among', 'throughout', 'despite', 'towards', 'upon', 'according'
 ]);
+
+// ============================================================================
+// STRICT CONTENT VALIDATION
+// ============================================================================
+
+/**
+ * Validates and scores content quality
+ * Returns detailed validation result with quality score and issues
+ */
+function validateContentQuality(content: string, title: string): ContentValidation {
+  const issues: string[] = [];
+  let score = 100;
+  
+  if (!content || content.trim().length === 0) {
+    return {
+      isValid: false,
+      quality: 'unusable',
+      score: 0,
+      issues: ['No content provided'],
+      cleanedContent: '',
+      wordCount: 0,
+    };
+  }
+
+  // Clean the content first
+  let cleanedContent = content;
+  
+  // Check 1: HTML artifacts detection
+  const htmlArtifacts = [
+    { pattern: /&[a-z]+;/gi, name: 'HTML entities' },
+    { pattern: /<[a-z][^>]*>/gi, name: 'HTML tags' },
+    { pattern: /href\s*=/gi, name: 'href attributes' },
+    { pattern: /class\s*=/gi, name: 'class attributes' },
+    { pattern: /style\s*=/gi, name: 'style attributes' },
+    { pattern: /\b(onclick|onload|onerror)\s*=/gi, name: 'event handlers' },
+  ];
+  
+  let htmlArtifactCount = 0;
+  for (const { pattern, name } of htmlArtifacts) {
+    const matches = cleanedContent.match(pattern);
+    if (matches) {
+      htmlArtifactCount += matches.length;
+      if (matches.length > 5) {
+        issues.push(`Contains ${name} (${matches.length} occurrences)`);
+      }
+    }
+  }
+  
+  // Clean HTML artifacts
+  cleanedContent = cleanTextFromHTML(cleanedContent);
+  cleanedContent = cleanedContent
+    .replace(/\b(href|font|nbsp|amp|quot|class|style)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Check 2: Word count
+  const words = cleanedContent.split(/\s+/).filter(w => w.length > 0);
+  const wordCount = words.length;
+  
+  if (wordCount < QUALITY_THRESHOLDS.MIN_WORD_COUNT) {
+    issues.push(`Insufficient word count: ${wordCount} (minimum: ${QUALITY_THRESHOLDS.MIN_WORD_COUNT})`);
+    score -= 40;
+  } else if (wordCount < QUALITY_THRESHOLDS.MIN_WORD_COUNT * 2) {
+    issues.push(`Low word count: ${wordCount}`);
+    score -= 20;
+  }
+  
+  // Check 3: Sentence count
+  const sentences = cleanedContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length < QUALITY_THRESHOLDS.MIN_SENTENCE_COUNT) {
+    issues.push(`Insufficient sentences: ${sentences.length}`);
+    score -= 20;
+  }
+  
+  // Check 4: Average word length (detect gibberish or encoded content)
+  const avgWordLength = words.reduce((sum, w) => sum + w.length, 0) / Math.max(words.length, 1);
+  if (avgWordLength < QUALITY_THRESHOLDS.MIN_AVG_WORD_LENGTH) {
+    issues.push(`Suspicious average word length: ${avgWordLength.toFixed(1)} (possible gibberish)`);
+    score -= 30;
+  }
+  if (avgWordLength > QUALITY_THRESHOLDS.MAX_AVG_WORD_LENGTH) {
+    issues.push(`Suspicious average word length: ${avgWordLength.toFixed(1)} (possible encoded content)`);
+    score -= 30;
+  }
+  
+  // Check 5: Alphanumeric ratio
+  const alphanumericChars = (cleanedContent.match(/[a-zA-Z0-9]/g) || []).length;
+  const totalChars = cleanedContent.length;
+  const alphaRatio = totalChars > 0 ? alphanumericChars / totalChars : 0;
+  
+  if (alphaRatio < QUALITY_THRESHOLDS.MIN_ALPHANUMERIC_RATIO) {
+    issues.push(`Low alphanumeric ratio: ${(alphaRatio * 100).toFixed(1)}% (possible special characters/encoding issues)`);
+    score -= 25;
+  }
+  
+  // Check 6: HTML artifact ratio
+  const artifactRatio = htmlArtifactCount / Math.max(wordCount, 1);
+  if (artifactRatio > QUALITY_THRESHOLDS.MAX_HTML_ARTIFACT_RATIO) {
+    issues.push(`High HTML artifact ratio: ${(artifactRatio * 100).toFixed(1)}%`);
+    score -= 20;
+  }
+  
+  // Check 7: Repetitive content detection
+  const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+  const uniqueRatio = uniqueWords.size / Math.max(words.length, 1);
+  if (uniqueRatio < 0.3 && wordCount > 20) {
+    issues.push(`Highly repetitive content: ${(uniqueRatio * 100).toFixed(1)}% unique words`);
+    score -= 15;
+  }
+  
+  // Check 8: Content relevance to title
+  if (title) {
+    const titleKeywords = extractKeywords(title);
+    const contentKeywords = extractKeywords(cleanedContent);
+    const relevance = calculateSimilarity(titleKeywords, contentKeywords);
+    if (relevance < 0.1 && wordCount > 50) {
+      issues.push(`Content may not be relevant to title (similarity: ${(relevance * 100).toFixed(1)}%)`);
+      score -= 10;
+    }
+  }
+  
+  // Ensure score stays in bounds
+  score = Math.max(0, Math.min(100, score));
+  
+  // Determine quality level
+  let quality: ContentValidation['quality'];
+  if (score >= 70) {
+    quality = 'high';
+  } else if (score >= 50) {
+    quality = 'medium';
+  } else if (score >= 25) {
+    quality = 'low';
+  } else {
+    quality = 'unusable';
+  }
+  
+  return {
+    isValid: score >= 25,
+    quality,
+    score,
+    issues,
+    cleanedContent,
+    wordCount,
+  };
+}
+
+/**
+ * Validates a URL is properly formatted and accessible
+ */
+function validateUrl(url: string): { isValid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (!url || typeof url !== 'string') {
+    return { isValid: false, issues: ['URL is missing or invalid'] };
+  }
+  
+  // Check URL format
+  try {
+    const parsed = new URL(url);
+    
+    // Must be http or https
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      issues.push(`Invalid protocol: ${parsed.protocol}`);
+    }
+    
+    // Check for suspicious patterns
+    if (url.includes('javascript:')) {
+      issues.push('Contains javascript protocol');
+    }
+    if (url.includes('data:')) {
+      issues.push('Contains data URI');
+    }
+    
+    // Check for Google redirect URLs and extract actual URL
+    if (parsed.hostname === 'news.google.com' && parsed.pathname.includes('/articles/')) {
+      issues.push('Google News redirect URL - may need extraction');
+    }
+    
+  } catch {
+    issues.push('Malformed URL');
+    return { isValid: false, issues };
+  }
+  
+  return { isValid: issues.length === 0, issues };
+}
+
+// ============================================================================
+// END STRICT CONTENT VALIDATION
+// ============================================================================
 
 // Extract keywords from text
 function extractKeywords(text: string): string[] {
@@ -205,6 +421,11 @@ function collateStories(stories: StoryContent[], similarityThreshold: number = 0
     }
     const avgSimilarity = comparisons > 0 ? totalSimilarity / comparisons : 1;
     
+    // Calculate quality metrics for the group
+    const qualityScores = groupStories.map(s => s.qualityScore || 0);
+    const averageQualityScore = qualityScores.reduce((sum, s) => sum + s, 0) / Math.max(qualityScores.length, 1);
+    const hasHighQualitySource = groupStories.some(s => s.contentQuality === 'high');
+    
     groups.push({
       id: `group-${Date.now()}-${groups.length}`,
       topic,
@@ -216,6 +437,8 @@ function collateStories(stories: StoryContent[], similarityThreshold: number = 0
       sources,
       primaryStory: story,
       similarity: avgSimilarity,
+      averageQualityScore,
+      hasHighQualitySource,
     });
   }
   
@@ -415,6 +638,12 @@ async function extractArticleContent(
   // Clean the fallback description first
   const cleanedDescription = fallbackDescription ? cleanRSSDescription(fallbackDescription) : '';
   
+  // Validate URL first
+  const urlValidation = validateUrl(url);
+  if (!urlValidation.isValid) {
+    console.log(`[read-stories] Invalid URL: ${urlValidation.issues.join(', ')}`);
+  }
+  
   // For Google News URLs, always use fallback description
   // Google News URLs are redirect pages, not actual articles
   if (url.includes('news.google.com')) {
@@ -422,20 +651,23 @@ async function extractArticleContent(
     
     // Use cleaned description if it has meaningful content
     const contentToUse = cleanedDescription.length >= 30 ? cleanedDescription : title;
-    const wordCount = contentToUse.split(/\s+/).filter(w => w.length > 0).length;
+    const validation = validateContentQuality(contentToUse, title);
     
     return {
       headlineId,
       url,
       title: cleanTextFromHTML(title),
-      content: contentToUse,
+      content: validation.cleanedContent || contentToUse,
       publishedAt: fallbackPubDate || new Date().toISOString(),
       source: fallbackSource || 'Google News',
-      wordCount,
-      readingTime: Math.ceil(wordCount / 200),
+      wordCount: validation.wordCount,
+      readingTime: Math.ceil(validation.wordCount / 200),
       extractedAt: new Date().toISOString(),
-      success: true,
-      error: undefined,
+      success: validation.isValid,
+      error: validation.isValid ? undefined : validation.issues.join('; '),
+      contentQuality: validation.quality,
+      qualityScore: validation.score,
+      validationIssues: validation.issues,
     };
   }
   
@@ -476,24 +708,27 @@ async function extractArticleContent(
       content = cleanedDescription;
     }
 
-    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
-    const success = content.length >= 50; // Lower threshold when using description
-
-    console.log(`[read-stories] Extracted ${wordCount} words, success: ${success}`);
+    // Validate the extracted content
+    const validation = validateContentQuality(content, title);
+    
+    console.log(`[read-stories] Extracted ${validation.wordCount} words, quality: ${validation.quality}, score: ${validation.score}`);
 
     return {
       headlineId,
       url,
       title: cleanTextFromHTML(title),
-      content,
+      content: validation.cleanedContent || content,
       author,
       publishedAt: publishedAt || new Date().toISOString(),
       source,
-      wordCount,
-      readingTime: Math.ceil(wordCount / 200),
+      wordCount: validation.wordCount,
+      readingTime: Math.ceil(validation.wordCount / 200),
       extractedAt: new Date().toISOString(),
-      success,
-      error: !success ? 'Content too short' : undefined,
+      success: validation.isValid,
+      error: !validation.isValid ? validation.issues.join('; ') : undefined,
+      contentQuality: validation.quality,
+      qualityScore: validation.score,
+      validationIssues: validation.issues,
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -502,19 +737,23 @@ async function extractArticleContent(
     // Use cleaned fallback description if available
     if (cleanedDescription.length >= 30) {
       console.log(`[read-stories] Using cleaned fallback description after error for ${url}`);
-      const wordCount = cleanedDescription.split(/\s+/).filter(w => w.length > 0).length;
+      const validation = validateContentQuality(cleanedDescription, title);
+      
       return {
         headlineId,
         url,
         title: cleanTextFromHTML(title),
-        content: cleanedDescription,
+        content: validation.cleanedContent || cleanedDescription,
         publishedAt: fallbackPubDate || new Date().toISOString(),
         source: fallbackSource || extractSourceFromUrl(url),
-        wordCount,
-        readingTime: Math.ceil(wordCount / 200),
+        wordCount: validation.wordCount,
+        readingTime: Math.ceil(validation.wordCount / 200),
         extractedAt: new Date().toISOString(),
-        success: true,
-        error: undefined,
+        success: validation.isValid,
+        error: validation.isValid ? undefined : validation.issues.join('; '),
+        contentQuality: validation.quality,
+        qualityScore: validation.score,
+        validationIssues: validation.issues,
       };
     }
     
@@ -530,6 +769,9 @@ async function extractArticleContent(
       extractedAt: new Date().toISOString(),
       success: false,
       error: errorMsg,
+      contentQuality: 'unusable',
+      qualityScore: 0,
+      validationIssues: [errorMsg],
     };
   }
 }

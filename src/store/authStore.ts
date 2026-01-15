@@ -1,69 +1,180 @@
 import { create } from 'zustand';
-
-// Simple types for mock authentication
-interface User {
-  id: string;
-  email: string;
-}
-
-interface Session {
-  access_token: string;
-  token_type: string;
-  user: User;
-}
+import { persist, createJSONStorage } from 'zustand/middleware';
+import {
+  authenticateUser,
+  verifySession,
+  logout as authLogout,
+  getStoredSession,
+  AdminUser,
+  AuthSession,
+  hasRole,
+  canAccessAIGenerator,
+  canEditContent,
+} from '@/lib/auth';
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  // State
+  user: AdminUser | null;
+  session: AuthSession | null;
   isLoading: boolean;
   error: string | null;
-  role: string | null;
+  isAuthenticated: boolean;
+  
+  // Computed
+  isAdmin: boolean;
+  isEditor: boolean;
+  canUseAIGenerator: boolean;
+  canEdit: boolean;
+  
+  // Actions
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
-  isAdmin: boolean;
+  clearError: () => void;
 }
 
-// HARDCODED FOR DEVELOPMENT
-export const useAuthStore = create<AuthState>((set) => ({
-  user: { id: 'dev-admin-user', email: 'admin@example.com' } as any, // Mock user object
-  session: { access_token: 'dev-token', token_type: 'bearer', user: { id: 'dev-admin-user' } } as any, // Mock session
-  role: 'admin',
-  isLoading: false,
-  error: null,
-  isAdmin: true,
-  login: async (email, password) => {
-    console.log('Attempting mock login...');
-    if (email === 'admin@example.com' && password === 'password') {
-      console.log('Mock login successful');
-      set({
-        user: { id: 'dev-admin-user', email: 'admin@example.com' } as any,
-        session: { access_token: 'dev-token', token_type: 'bearer', user: { id: 'dev-admin-user' } } as any,
-        role: 'admin',
-        isAdmin: true,
-        isLoading: false,
-        error: null,
-      });
-      return Promise.resolve();
-    }
-    console.log('Mock login failed: Invalid credentials');
-    const error = 'Invalid credentials';
-    set({ isLoading: false, error });
-    return Promise.reject(new Error(error));
-  },
-  logout: async () => {
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
       user: null,
-      isAdmin: false,
-      isLoading: false,
       session: null,
-      role: null,
-    });
-    console.log('User logged out and session cleared');
-    return Promise.resolve();
-  },
-  checkAuth: async () => {
-    console.log('checkAuth is disabled in development mode. User is always admin.');
-    return Promise.resolve();
-  },
-}));
+      isLoading: true,
+      error: null,
+      isAuthenticated: false,
+      
+      // Computed properties
+      isAdmin: false,
+      isEditor: false,
+      canUseAIGenerator: false,
+      canEdit: false,
+
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const result = await authenticateUser(email, password);
+          
+          if (!result.success || !result.session) {
+            set({
+              isLoading: false,
+              error: result.error || 'Authentication failed',
+              isAuthenticated: false,
+            });
+            throw new Error(result.error || 'Authentication failed');
+          }
+
+          const user = result.session.user;
+          set({
+            user,
+            session: result.session,
+            isLoading: false,
+            error: null,
+            isAuthenticated: true,
+            isAdmin: hasRole(user, 'admin'),
+            isEditor: hasRole(user, 'editor'),
+            canUseAIGenerator: canAccessAIGenerator(user),
+            canEdit: canEditContent(user),
+          });
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || 'Login failed',
+            isAuthenticated: false,
+          });
+          throw error;
+        }
+      },
+
+      logout: async () => {
+        try {
+          await authLogout();
+        } finally {
+          set({
+            user: null,
+            session: null,
+            isLoading: false,
+            error: null,
+            isAuthenticated: false,
+            isAdmin: false,
+            isEditor: false,
+            canUseAIGenerator: false,
+            canEdit: false,
+          });
+        }
+      },
+
+      checkAuth: async () => {
+        // Check for existing session
+        const storedSession = getStoredSession();
+        
+        if (!storedSession) {
+          set({
+            user: null,
+            session: null,
+            isLoading: false,
+            isAuthenticated: false,
+            isAdmin: false,
+            isEditor: false,
+            canUseAIGenerator: false,
+            canEdit: false,
+          });
+          return;
+        }
+
+        set({ isLoading: true });
+
+        try {
+          const result = await verifySession();
+          
+          if (result.success && result.session) {
+            const user = result.session.user;
+            set({
+              user,
+              session: result.session,
+              isLoading: false,
+              isAuthenticated: true,
+              isAdmin: hasRole(user, 'admin'),
+              isEditor: hasRole(user, 'editor'),
+              canUseAIGenerator: canAccessAIGenerator(user),
+              canEdit: canEditContent(user),
+            });
+          } else {
+            set({
+              user: null,
+              session: null,
+              isLoading: false,
+              isAuthenticated: false,
+              isAdmin: false,
+              isEditor: false,
+              canUseAIGenerator: false,
+              canEdit: false,
+            });
+          }
+        } catch (error) {
+          set({
+            user: null,
+            session: null,
+            isLoading: false,
+            isAuthenticated: false,
+            isAdmin: false,
+            isEditor: false,
+            canUseAIGenerator: false,
+            canEdit: false,
+          });
+        }
+      },
+
+      clearError: () => set({ error: null }),
+    }),
+    {
+      name: 'resonance-auth',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        // Only persist non-sensitive state for fast rehydration
+        // Actual auth verification happens via checkAuth()
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);

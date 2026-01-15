@@ -1,14 +1,22 @@
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { AdminUser, AuthSession } from '@/lib/auth';
 
 // Define the shape of the context value
 interface AuthContextValue {
-  user: any; // Consider using a more specific type like User from @supabase/supabase-js
+  user: AdminUser | null;
+  session: AuthSession | null;
   isAdmin: boolean;
+  isEditor: boolean;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  canUseAIGenerator: boolean;
+  canEdit: boolean;
+  error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -22,7 +30,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const authState = useAuthStore(state => state);
 
   useEffect(() => {
-    // Initial check for mock authentication
+    // Check authentication on mount
     authState.checkAuth();
   }, []); // Run only once on mount
 

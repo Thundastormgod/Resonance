@@ -4,6 +4,7 @@ import category from './category'
 import siteSettings from './siteSettings'
 import generatedArticle from './generatedArticle'
 import dataSource from './dataSource'
+import adminUser from './adminUser'
 
 export const schemaTypes = [
   siteSettings, 
@@ -13,4 +14,6 @@ export const schemaTypes = [
   // AI News Generation
   generatedArticle,
   dataSource,
+  // Admin & Authentication
+  adminUser,
 ]

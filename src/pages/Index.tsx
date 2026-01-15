@@ -5,6 +5,7 @@ import { sanitizeText, validateSlug } from '@/lib/security';
 import { getSafeArticleSelections, ValidationResult } from '@/lib/articleValidation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { NewsTicker, NewsTickerVertical } from '../components/NewsTicker';
 import { Loader2, Video, Clock, TrendingUp, User, Calendar } from 'lucide-react';
 import { ArticleCardSkeleton, LeadStorySkeleton, TrendingItemSkeleton, VideoArticleSkeleton } from '../components/SkeletonLoaders';
 import { SanityImageSource } from '@sanity/image-url/lib/types/types';
@@ -302,6 +303,16 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-off-white text-deep-navy font-sans">
       <Header />
+      
+      {/* Live News Ticker - TV-style scrolling headlines */}
+      <NewsTicker 
+        topic="breaking news"
+        autoScroll={true}
+        scrollSpeed={40}
+        maxHeadlines={15}
+        refreshInterval={3 * 60 * 1000} // Refresh every 3 minutes
+      />
+      
       <main className="flex-grow container mx-auto p-4 md:p-8">
         {/* Breaking News Banner */}
         {breakingNewsArticle && (
@@ -452,6 +463,14 @@ const Index = () => {
                 ))}
               </div>
             )}
+            
+            {/* Live World News Feed */}
+            <NewsTickerVertical 
+              topic="international"
+              maxHeadlines={8}
+              refreshInterval={5 * 60 * 1000}
+              className="shadow-sm"
+            />
           </aside>
         </div>
 

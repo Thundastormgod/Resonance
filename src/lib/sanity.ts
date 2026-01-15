@@ -9,44 +9,45 @@ const apiVersion = '2023-05-03';
 
 // SECURITY: Do not use tokens with write permissions in client-side code
 // Only use public tokens or no token for read-only operations
-const token = import.meta.env.VITE_SANITY_PUBLIC_TOKEN; // Changed from VITE_SANITY_TOKEN
+// If VITE_SANITY_PUBLIC_TOKEN is not set or empty, we use unauthenticated reads (which work for public datasets)
+const rawToken = import.meta.env.VITE_SANITY_PUBLIC_TOKEN;
+// Treat empty string as no token (to override Netlify site settings if needed)
+const token = (rawToken && rawToken.trim()) ? rawToken.trim() : undefined;
 
 console.log('Sanity Project ID:', projectId);
+console.log('Sanity Token configured:', !!token);
 
 // SECURITY WARNING: Ensure token has minimal permissions (read-only)
 if (token && import.meta.env.DEV) {
   console.warn('⚠️ SECURITY: Sanity token detected in client. Ensure it has read-only permissions only.');
 }
 
-export const client = createClient({
+// Base client config without token
+const baseConfig = {
   projectId,
   dataset,
   useCdn: false, // Disable CDN for immediate updates
   apiVersion,
-  token, // Only use for read operations with minimal permissions
-  perspective: 'published',
-  ignoreBrowserTokenWarning: true, // Suppress token warnings in dev
+  perspective: 'published' as const,
+  ignoreBrowserTokenWarning: true,
   stega: {
     enabled: false,
     studioUrl: 'http://localhost:3333',
   },
-  // Force fresh data on every request
   requestTagPrefix: 'sanity.fetch',
   allowReconfigure: false,
+};
+
+export const client = createClient({
+  ...baseConfig,
+  ...(token ? { token } : {}), // Only include token if it exists
 })
 
 // Create a separate client for real-time listening (no CDN, no cache)
 export const liveClient = createClient({
-  projectId,
-  dataset,
-  useCdn: false, // Never use CDN for live updates
-  apiVersion,
-  token,
-  perspective: 'published',
-  ignoreBrowserTokenWarning: true,
-  // Aggressive cache busting for immediate updates
+  ...baseConfig,
+  ...(token ? { token } : {}), // Only include token if it exists
   requestTagPrefix: 'sanity.live',
-  allowReconfigure: false,
 })
 
 const builder = imageUrlBuilder(client)
@@ -55,13 +56,36 @@ export function urlFor(source: SanityImageSource) {
   return builder.image(source)
 }
 
+// Check if we have a token for live queries (listen API requires authentication)
+const hasToken = !!token;
+if (!hasToken) {
+  console.log('ℹ️ No Sanity token configured - live queries will use polling instead');
+}
+
 // Real-time subscription helper
 export function createLiveQuery<T>(query: string, params: Record<string, any> = {}) {
   return {
     query,
     params,
-    // Listen for changes
+    // Listen for changes - only works with a valid token
     listen: (callback: (result: T[]) => void, errorCallback?: (error: Error) => void) => {
+      // If no token, don't attempt live queries - they require authentication
+      if (!hasToken) {
+        console.log('⚠️ Skipping live query subscription - no token configured. Using initial fetch only.');
+        // Do an initial fetch and return a no-op unsubscribe
+        client.fetch<T[]>(query, params)
+          .then(result => callback(result))
+          .catch(error => {
+            console.error('Error fetching initial data:', error);
+            if (errorCallback) errorCallback(error);
+          });
+        
+        // Return a mock subscription that can be unsubscribed
+        return {
+          unsubscribe: () => {},
+        };
+      }
+
       const subscription = liveClient.listen(query, params, {
         includeResult: true,
         visibility: 'query'
